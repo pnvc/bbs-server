@@ -1,11 +1,11 @@
 MAINFILE=server.c
 FOREXECUTE=$(MAINFILE:.c=)
-MODULESDIR=modules/
-HEADERSDIR=headers/
+MDIR=modules/
+HDIR=headers/
 CFLAGS=-Wall -g -ansi -pedantic
 CC=gcc
-OBJMODULES=$(MODULESDIR)server_config.o
-OBJHEADERS=$(HEADERSDIR)server_config.h
+OBJMODULES=$(MDIR)server_config.o $(MDIR)start_deamon_process.o $(MDIR)signal_handler.o
+OBJHEADERS=$(HDIR)server_config.h $(HDIR)start_deamon_process.h $(HDIR)signal_handler.h
 
 %.o:%.c %.h
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -17,4 +17,4 @@ run:server
 	./server
 
 clean:
-	rm $(MODULESDIR)*.o
+	rm $(MDIR)*.o

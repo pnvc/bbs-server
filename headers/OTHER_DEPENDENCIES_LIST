@@ -1,0 +1,11 @@
+inttypes.h
+signal.h
+syslog.h
+stdio.h
+stdlib.h
+arpa/inet.h
+sys/stat.h
+sys/types.h
+unistd.h
+string.h
+signal.h

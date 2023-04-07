@@ -2,6 +2,8 @@
 #define SERVER_H_SERVER
 
 #include "server_config.h"
+#include "start_deamon_process.h"
+#include "signal_handler.h"
 #include <inttypes.h>
 #include <signal.h>
 #include <syslog.h>
