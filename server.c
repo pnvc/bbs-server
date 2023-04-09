@@ -17,19 +17,17 @@ int32_t main()
 		fprintf(stderr, "set config\n");
 		return 1;
 	}
-#if 0
 	if (create_working_directory(DIRECTORY) < 0) {
 		fprintf(stderr, "Unable to create working directory\n");
 		return 2;
 	}
-	if (create_accounts_file(DIRECTORY, ACCOUNTS_FILE) < 0) {
+	if (create_accounts_file((const char*)ACCOUNTS_FILE) < 0) {
 		fprintf(stderr, "Unable to create accounts file\n");
 		return 2;
 	}
-	if (check_image(DIRECTORY, SCREEN_FILE) < 0) {
+	if (check_image((const char*)SCREEN_FILE) < 0) {
 		printf("No image\n");
 	}
-#endif
 	ls = socket(AF_INET, SOCK_STREAM, 0);
 	if (ls < 0) {
 		perror("socket problem\n");
