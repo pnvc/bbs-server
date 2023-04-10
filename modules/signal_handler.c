@@ -1,7 +1,6 @@
 #include "../headers/signal_handler.h"
 
-volatile sig_atomic_t loop_is_possible = 1;
-volatile sig_atomic_t config_update = 0;
+volatile sig_atomic_t loop_is_possible = 1, config_update = 0;
 
 void usr1_handler(int32_t s)
 {

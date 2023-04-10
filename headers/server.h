@@ -1,10 +1,14 @@
 #ifndef SERVER_H_SENTRY
-#define SERVER_H_SERVER
+#define SERVER_H_SENTRY
+#define _GNU_SOURCE
 
+#include "typedefs.h"
 #include "server_config.h"
 #include "start_deamon_process.h"
 #include "signal_handler.h"
 #include "working_files.h"
+#include "pollfd_control.h"
+#include "connections.h"
 #include <inttypes.h>
 #include <signal.h>
 #include <syslog.h>
@@ -13,8 +17,6 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-typedef struct sockaddr sa;
-typedef struct sockaddr_in sa_in;
+#include <poll.h>
 
 #endif

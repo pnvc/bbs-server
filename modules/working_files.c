@@ -1,6 +1,6 @@
 #include "../headers/working_files.h"
 
-int32_t create_working_directory(const char *dir)
+int32_t create_working_directory_and_chdir(const char *dir)
 {
   if (!dir) {
     return -1;
