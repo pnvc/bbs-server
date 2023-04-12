@@ -2,7 +2,6 @@
 #define POLLFD_CONTROL_H_SENTRY
 
 #include <inttypes.h>
-#include <stddef.h>
 #include <poll.h>
 #include <stdlib.h>
 
