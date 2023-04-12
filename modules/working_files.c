@@ -7,7 +7,7 @@ int32_t create_working_directory_and_chdir(const char *dir)
   }
   if (mkdir(dir, 0775) < 0) {
     if (errno != EEXIST) {
-      perror("Working directory");
+      syslog(LOG_INFO, "%s working directory", strerror(errno));
       return -1;
     }
   }
@@ -22,7 +22,7 @@ int32_t create_accounts_file(const char *acc)
     return -1;
   }
   if ((fd = open(acc, O_WRONLY | O_CREAT, 0664)) < 0) {
-    perror("Accounts file");
+    syslog(LOG_INFO, "%s accounts file", strerror(errno));
     return -1;
   }
   close(fd);
@@ -36,8 +36,9 @@ int32_t check_image(const char *img)
     return -1;
   }
   if ((fd = open(img, O_RDONLY)) < 0) {
-    perror("Image file");
+    syslog(LOG_INFO, "%s screen file", strerror(errno));
     return -1;
   }
+  close(fd);
   return 0;
 }

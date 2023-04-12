@@ -8,6 +8,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <syslog.h>
+#include <string.h>
 
 int32_t create_working_directory_and_chdir(const char *dir);
 int32_t create_accounts_file(const char *acc);

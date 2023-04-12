@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <stdlib.h>
+#include <syslog.h>
 
 int32_t set_config(FILE *config, char **ip, char **port, char **directory,
     char **screen_file, char **accounts_file);
