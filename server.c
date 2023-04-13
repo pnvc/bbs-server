@@ -57,7 +57,7 @@ start:
     	exit(EXIT_FAILURE);
 	}
 	if (create_accounts_file((const char*)ACCOUNTS_FILE) < 0) {
-	    exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
 	}
 	if (check_image((const char*)SCREEN_FILE) < 0) {
     	syslog(LOG_INFO, "No screen");
@@ -117,7 +117,7 @@ start:
 			}
 		}
 		close_and_remove_off_connections(&first_connect, &last_connect, pollfd_ptr, (const size_t)pfdli);
-/*    narrow_the_pollfd_array(pollfd_ptr, &pfdli);*/
+		narrow_pollfd_array(pollfd_ptr, &pfdli);
 /*    set_pollfd_by_connections()*/
 		ppoll_return = ppoll(pollfd_ptr, pollfd_count, NULL,  &old_mask); /* wtf? */
 		if (ppoll_return < 0) {
@@ -145,7 +145,7 @@ start:
 					if (!pfdi && pollfd_ptr[pfdi].revents & POLLIN) {/* ACCEPT CONNECTION REQUEST */
 						consock = accept(ls, (sa*)&conaddr, &conaddr_len);
 						if (consock < 0) {
-							syslog(LOG_INFO, "Unnable to connect with accept");
+							syslog(LOG_INFO, "Unable to connect with accept");
 						} else {
 							if (create_connect(&first_connect, &last_connect, (const int32_t)consock) < 0) {
 								syslog(LOG_INFO, "Unable to create struct connect");

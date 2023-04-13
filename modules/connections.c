@@ -61,9 +61,9 @@ void close_and_remove_off_connections(_connect **f, _connect **l, struct pollfd 
 			} else {
 				*f = *l = NULL;
 			}
-			tmp = tmp->next;
 			free(tmp_free);
 		}
+		tmp = tmp->next;
 	}
 }
 

@@ -31,3 +31,24 @@ int32_t realloc_to_POLLFD_ARR_LENGTH(struct pollfd **pf, size_t pfal)
 	}
 	return 0;
 }
+
+void narrow_pollfd_array(struct pollfd *pf, size_t *pfli)
+{
+	size_t i;
+	size_t tmp;
+	size_t p = *pfli;
+	for (i = 1; i <= p; i++) {
+		if (pf[i].fd < 0) {
+			tmp = i;
+			for (++i; i <= p && i < 0; i++);
+			if (i <= p) {
+				pf[tmp].fd += pf[i].fd;
+				pf[i].fd = pf[tmp].fd - pf[i].fd;
+				pf[tmp].fd -= pf[i].fd;
+				i = tmp + 1;
+			}
+		}
+	}
+	for (i = 1; pf[i].fd > 0; i++);
+	*pfli = i;
+}
