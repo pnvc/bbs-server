@@ -131,7 +131,7 @@ start:
 		}
 		close_and_remove_off_connections(&first_connect, &last_connect);
 		narrow_pollfd_array(pollfd_ptr, &pfdli);
-		set_pollfd_by_connections(pollfd_ptr, &pfdli, first_connect);
+		set_pollfd_by_connections(pollfd_ptr, &pfdli, (const size_t)pollfd_count,first_connect);
 		ppoll_return = ppoll(pollfd_ptr, pollfd_count, NULL,  &old_mask); /* wtf? */
 		if (ppoll_return < 0) {
 			if (errno == EINTR) {

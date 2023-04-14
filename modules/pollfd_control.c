@@ -50,38 +50,46 @@ void narrow_pollfd_array(struct pollfd *pf, size_t *pfli)
 		}
 	}
 	for (i = 1; pf[i].fd > 0; i++);
-	*pfli = i;
+*pfli = i;
 }
-#if 0
-void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, _connect *f)
+
+void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t pfds_len, _connect *f)
 {
 	size_t pfi = *pfli;
 	while (f) {
+		if (pfi == pfds_len - 1) {
+			break;
+		}
 		switch (f->st) {
 			case screen:
 			case after_screen:
+			case reg_choise:
+			case guest_choise:
+			case login_choise:
+			case reg_bad_l:
+			case reg_bad_p:
+			case reg_success:
+			case login_bad_l:
+			case login_bad_p:
+			case login_success:
 				pfds[pfi].fd = f->fd;
 				pfds[pfi].events = POLLOUT;
 				++pfi;
 				break;
 			case rgl_choise:
+			case reg_l:
+			case reg_p:
+			case login_l:
+			case login_p:
+			case online_guest:
+			case online_login:
 				pfds[pfi].fd = f->fd;
 				pfds[pfi].events = POLLIN;
 				++pfi;
 				break;
-			case guest:
-				break;
-			case login:
-				break;
-			case reg:
-				break;
-			case online:
-				break;
 			default:
 				break;
-		}
 		f = f->next;
 	}
 	*pfli = pfi;
 }
-#endif

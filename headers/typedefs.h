@@ -11,10 +11,21 @@ typedef enum state {
 	screen,
 	after_screen,
 	rgl_choise,
-	reg,
-	guest,
-	login,
-	online
+	reg_choise,
+	guest_choise,
+	login_choise,
+	reg_l,
+	reg_p,
+	reg_bad_l,
+	reg_bad_p,
+	reg_success,
+	login_l,
+	login_p,
+	login_bad_l,
+	login_bad_p,
+	login_success,
+	online_guest,
+	online_login,
 } _state;
 
 typedef struct connect {
