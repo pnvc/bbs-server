@@ -1,5 +1,0 @@
-recv_send files - comparison pollfd.fd with _connect.fd
-typedef - new states
-working_files - read_screen_file
-connections - the params is removed that dont need
-server.c - fill_initial_pollfd_array, action for set pollfd.fd to -1 and search _connect+pollfd.fd had been added

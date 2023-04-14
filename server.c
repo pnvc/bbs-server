@@ -182,12 +182,6 @@ start:
 						pollfd_ptr[pfdi].fd = -1;
 						tmp->st = off;
 						--ppoll_return;
-					} else if (pollfd_ptr[pfdi].revents & POLLRDHUP || pollfd_ptr[pfdi].revents & POLLERR) {
-						tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
-						tmp->st = off;
-						pollfd_ptr[pfdi].revents = 0;
-						pollfd_ptr[pfdi].fd = -1;
-						--ppoll_return;
 					}
 				}
 			}
