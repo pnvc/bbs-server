@@ -42,3 +42,23 @@ int32_t check_image(const char *img)
 	close(fd);
 	return 0;
 }
+
+char *read_screen_file(const char *screen_file)
+{
+	size_t rlength;
+	char buf[1450];
+	size_t fread_return;
+	FILE *f;
+	char *r = NULL;
+	rlength = 1;
+	f = fopen(screen_file, "r");
+	while ((fread_return = fread(buf, sizeof(char), sizeof(buf), f))) {
+		r = realloc(r, sizeof(char) * (fread_return + rlength));
+		if (!r || !memcpy(r + rlength - 1, buf, fread_return) || !memset(buf, 0, fread_return)) {
+			return NULL;
+		}
+		rlength += fread_return;
+	}
+	r[rlength - 1] = 0;
+	return r;
+}

@@ -9,6 +9,7 @@
 #include "working_files.h"
 #include "pollfd_control.h"
 #include "connections.h"
+#include "recv_send_state_logic.h"
 #include <inttypes.h>
 #include <signal.h>
 #include <syslog.h>

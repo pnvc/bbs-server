@@ -1,13 +1,20 @@
 #include "headers/server.h"
+#include "headers/pollfd_control.h"
+#include "headers/recv_send_state_logic.h"
+#include <stdio.h>
+#include <sys/poll.h>
 
 #define POLLFD_ARR_LENGTH 1000
 
 extern volatile sig_atomic_t loop_is_possible, config_update;	/* signal_handler.c */
 
+char *SCREEN_FILE_BUF;											/* the buf contains screen file */
+size_t SCREEN_FILE_BUF_len;
+
 int32_t main()
 {
 	char *IP, *PORT, *DIRECTORY, *SCREEN_FILE, *ACCOUNTS_FILE;	/* the future strings for configuration */
-	int32_t ls; 												/* listen socket */
+	int32_t ls;													/* listen socket */
 	int32_t ipr;												/* inet_pton return */
 	int32_t optval;												/* setsockopt access value */
 	int32_t flags;												/* for set listen socket as flags | O_NONBLOCK */
@@ -24,6 +31,7 @@ int32_t main()
 	sigset_t old_mask;											/* mask to unblock all blocked signals */
 	_connect *first_connect;									/* the server has a list of connections, this is first pointer the list */
 	_connect *last_connect;										/* the last pointer of the list */
+	_connect *tmp;												/* temporarily _connect in main loop for recv or send */
 	FILE *config;												/* FILE pointer for the config/server.conf file */
 	start_deamon_process();
 	openlog("bbs-server", LOG_PID, 0);
@@ -34,11 +42,13 @@ int32_t main()
 	sigaddset(&user_mask, SIGHUP);
 	sigprocmask(SIG_SETMASK, &user_mask, &old_mask);
 start:
+	SCREEN_FILE_BUF = NULL;
 	ls = 0;
 	conaddr_len = sizeof(conaddr);
 	pfdli = 0;
 	pollfd_count = POLLFD_ARR_LENGTH;
 	pollfd_ptr = (struct pollfd*)malloc(sizeof(*pollfd_ptr) * POLLFD_ARR_LENGTH);
+	fill_initial_pollfd_arr(pollfd_ptr, POLLFD_ARR_LENGTH);
 	if (!pollfd_ptr) {
 		syslog(LOG_CRIT, "%s", strerror(errno));
 		exit(EXIT_FAILURE);
@@ -61,6 +71,9 @@ start:
 	}
 	if (check_image((const char*)SCREEN_FILE) < 0) {
     	syslog(LOG_INFO, "No screen");
+	} else {
+		SCREEN_FILE_BUF = read_screen_file((const char*)SCREEN_FILE);
+		SCREEN_FILE_BUF_len = strlen((const char*)SCREEN_FILE_BUF);
 	}
 	fill_initial_pollfd_arr(pollfd_ptr, POLLFD_ARR_LENGTH);
 	first_connect = last_connect = NULL;
@@ -116,9 +129,9 @@ start:
 				goto end;
 			}
 		}
-		close_and_remove_off_connections(&first_connect, &last_connect, pollfd_ptr, (const size_t)pfdli);
+		close_and_remove_off_connections(&first_connect, &last_connect);
 		narrow_pollfd_array(pollfd_ptr, &pfdli);
-/*    set_pollfd_by_connections()*/
+		set_pollfd_by_connections(pollfd_ptr, &pfdli, first_connect);
 		ppoll_return = ppoll(pollfd_ptr, pollfd_count, NULL,  &old_mask); /* wtf? */
 		if (ppoll_return < 0) {
 			if (errno == EINTR) {
@@ -132,6 +145,9 @@ start:
 					free(DIRECTORY);
 					free(SCREEN_FILE);
 					free(ACCOUNTS_FILE);
+					if (SCREEN_FILE_BUF) {
+						free(SCREEN_FILE_BUF);
+					}
 					shutdown(ls, SHUT_RDWR);
 					close(ls);
 					chdir("..");
@@ -139,9 +155,8 @@ start:
 				}
 			}
 		} else {
-			for (pfdi = 0; pfdi <= pfdli && ppoll_return; pfdi++) {
+			for (pfdi = 0; pfdi < pfdli && ppoll_return; pfdi++) {
 				if (pollfd_ptr[pfdi].fd != -1) {
-					--ppoll_return;
 					if (!pfdi && pollfd_ptr[pfdi].revents & POLLIN) {/* ACCEPT CONNECTION REQUEST */
 						consock = accept(ls, (sa*)&conaddr, &conaddr_len);
 						if (consock < 0) {
@@ -151,12 +166,28 @@ start:
 								syslog(LOG_INFO, "Unable to create struct connect");
 							}
 						}
-					}                                                /* ACCEPT CONNECTION REQUEST */
-					else if (pollfd_ptr[pfdi].revents & POLLIN) {
-						;
-					}
-					else if (pollfd_ptr[pfdi].revents & POLLOUT) {
-						;
+						--ppoll_return;
+					} else if (pollfd_ptr[pfdi].revents & POLLOUT) {
+						tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
+#if 0
+						send_to_tmp_and_change_state(tmp);
+#endif
+						pollfd_ptr[pfdi].fd = -1;
+						--ppoll_return;
+					} else if (pollfd_ptr[pfdi].revents & POLLIN) {
+						tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
+#if 0
+						recv_from_tmp_and_change_state((const _connect*)tmp);
+#endif
+						pollfd_ptr[pfdi].fd = -1;
+						tmp->st = off;
+						--ppoll_return;
+					} else if (pollfd_ptr[pfdi].revents & POLLRDHUP || pollfd_ptr[pfdi].revents & POLLERR) {
+						tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
+						tmp->st = off;
+						pollfd_ptr[pfdi].revents = 0;
+						pollfd_ptr[pfdi].fd = -1;
+						--ppoll_return;
 					}
 				}
 			}
@@ -171,6 +202,9 @@ end:
 	free(DIRECTORY);
 	free(SCREEN_FILE);
 	free(ACCOUNTS_FILE);
+	if (SCREEN_FILE_BUF) {
+		free(SCREEN_FILE_BUF);
+	}
 	close_and_remove_all_connections(&first_connect, &last_connect);
 	close(ls);
 	syslog(LOG_INFO, "bbs-server is shutdown");

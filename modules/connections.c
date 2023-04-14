@@ -33,18 +33,15 @@ int32_t create_connect(_connect **f, _connect **l, const int32_t fd)
 	return 0;
 }
 
-void close_and_remove_off_connections(_connect **f, _connect **l, struct pollfd *pfds, const size_t pfdli)
+void close_and_remove_off_connections(_connect **f, _connect **l)
 {
 	_connect *tmp, *tmp_free;
-	size_t i;
 	tmp = *f;
 	if (!tmp) {
 		return;
 	}
 	while (tmp) {
 		if (tmp->st == off) {
-			for (i = 1; i < pfdli && pfds[i].fd != tmp->fd; i++);
-			pfds[i].fd = -1;
 			if (tmp->login) {
 				free(tmp->login);
 			}
@@ -61,9 +58,11 @@ void close_and_remove_off_connections(_connect **f, _connect **l, struct pollfd 
 			} else {
 				*f = *l = NULL;
 			}
+			tmp = tmp->next;
 			free(tmp_free);
+		} else {
+			tmp = tmp->next;
 		}
-		tmp = tmp->next;
 	}
 }
 

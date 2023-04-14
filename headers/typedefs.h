@@ -9,6 +9,8 @@ typedef struct sockaddr_in sa_in;
 typedef enum state {
 	off,
 	screen,
+	after_screen,
+	rgl_choise,
 	reg,
 	guest,
 	login,

@@ -1,6 +1,6 @@
 #include "../headers/pollfd_control.h"
 
-void fill_initial_pollfd_arr(struct pollfd *pf, size_t pflen)
+void fill_initial_pollfd_arr(struct pollfd *pf, const size_t pflen)
 {
 	size_t i;
 	for (i = 0; i < pflen; i++) {
@@ -52,3 +52,36 @@ void narrow_pollfd_array(struct pollfd *pf, size_t *pfli)
 	for (i = 1; pf[i].fd > 0; i++);
 	*pfli = i;
 }
+#if 0
+void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, _connect *f)
+{
+	size_t pfi = *pfli;
+	while (f) {
+		switch (f->st) {
+			case screen:
+			case after_screen:
+				pfds[pfi].fd = f->fd;
+				pfds[pfi].events = POLLOUT;
+				++pfi;
+				break;
+			case rgl_choise:
+				pfds[pfi].fd = f->fd;
+				pfds[pfi].events = POLLIN;
+				++pfi;
+				break;
+			case guest:
+				break;
+			case login:
+				break;
+			case reg:
+				break;
+			case online:
+				break;
+			default:
+				break;
+		}
+		f = f->next;
+	}
+	*pfli = pfi;
+}
+#endif
