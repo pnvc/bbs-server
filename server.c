@@ -1,8 +1,11 @@
 #include "headers/server.h"
 #include "headers/pollfd_control.h"
 #include "headers/recv_send_state_logic.h"
+#include <asm-generic/errno.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/poll.h>
+#include <sys/socket.h>
 
 #define POLLFD_ARR_LENGTH 1000
 
@@ -33,6 +36,8 @@ int32_t main()
 	_connect *last_connect;										/* the last pointer of the list */
 	_connect *tmp;												/* temporarily _connect in main loop for recv or send */
 	FILE *config;												/* FILE pointer for the config/server.conf file */
+	char buf[1450] = {0};										/* main buffer for recv */
+	ssize_t recv_return;										/* recv returns */
 	start_deamon_process();
 	openlog("bbs-server", LOG_PID, 0);
 	signal(SIGUSR1, usr1_handler);
@@ -168,18 +173,22 @@ start:
 								}
 							}
 						} else {
+							recv_return = recv(pollfd_ptr[pfdi].fd, buf, sizeof(buf), 0);
 							tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
-#if 0
-							recv_from_tmp_and_change_state((const _connect*)tmp);
-#endif
+							if (!recv_return) {
+								tmp->st = off;
+							} else if (!strncmp((const char*)buf, "exit", 4)) {
+								tmp->st = good_bye;
+							} else {
+								check_recv_from_tmp_and_change_state(tmp, (const char*)buf);
+								memset(buf, 0, sizeof(buf));
+							}
 							pollfd_ptr[pfdi].fd = -1;
 						}
 						--ppoll_return;
 					} else if (pollfd_ptr[pfdi].revents & POLLOUT) {
 						tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
-#if 1
 						send_to_tmp_and_change_state(tmp);
-#endif
 						pollfd_ptr[pfdi].fd = -1;
 						--ppoll_return;
 					}

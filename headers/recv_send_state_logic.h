@@ -14,8 +14,7 @@
 #endif
 
 _connect *comparison_pollfd_with_connect(_connect *f, const int32_t pollfd_fd);
-#if 1
 void send_to_tmp_and_change_state(_connect *c);
-#endif
+void check_recv_from_tmp_and_change_state(_connect *c, const char *buf);
 
 #endif
