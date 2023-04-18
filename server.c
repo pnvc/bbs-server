@@ -1,11 +1,5 @@
+#define _GNU_SOURCE
 #include "headers/server.h"
-#include "headers/pollfd_control.h"
-#include "headers/recv_send_state_logic.h"
-#include <asm-generic/errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/poll.h>
-#include <sys/socket.h>
 
 #define POLLFD_ARR_LENGTH 1000
 
@@ -30,7 +24,7 @@ int32_t main()
 	size_t pfdi;												/* *pollfd index for check in for() loop */
 	struct pollfd *pollfd_ptr;									/* the pointer to the pollfd array */
 	nfds_t pollfd_count;										/* pollfds in *pollfd_ptr max count */
-	sigset_t user_mask;											/* mask for block SIGHUP and SIGUSR1 signals */
+	sigset_t user_mask;											/* mask for block SIGHUP, SIGUSR1 and SIGPIPE signals */
 	sigset_t old_mask;											/* mask to unblock all blocked signals */
 	_connect *first_connect;									/* the server has a list of connections, this is first pointer the list */
 	_connect *last_connect;										/* the last pointer of the list */
@@ -42,9 +36,11 @@ int32_t main()
 	openlog("bbs-server", LOG_PID, 0);
 	signal(SIGUSR1, usr1_handler);
 	signal(SIGHUP, hup_handler);
+	signal(SIGPIPE, SIG_IGN);
 	sigemptyset(&user_mask);
 	sigaddset(&user_mask, SIGUSR1);
 	sigaddset(&user_mask, SIGHUP);
+	sigaddset(&user_mask, SIGPIPE);
 	sigprocmask(SIG_SETMASK, &user_mask, &old_mask);
 start:
 	SCREEN_FILE_BUF = NULL;
