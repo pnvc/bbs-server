@@ -34,6 +34,7 @@ typedef struct connect {
 	_state st;
 	char *login;
 	char buf[1450];
+	char file_position;
 	char rights; /*0,1,2,3 (0 = su, 1 = a, 2 = u, 3 = g)*/
 } _connect;
 
