@@ -157,7 +157,7 @@ start:
 		} else {
 			for (pfdi = 0; pfdi < pfdli && ppoll_return; pfdi++) {
 				if (pollfd_ptr[pfdi].fd != -1) {
-					if (!pfdi && pollfd_ptr[pfdi].revents & POLLIN) {
+					if (pollfd_ptr[pfdi].revents & POLLIN) {
 						if (!pfdi){
 							consock = accept(ls, (sa*)&conaddr, &conaddr_len);
 							if (consock < 0) {
@@ -177,7 +177,7 @@ start:
 						--ppoll_return;
 					} else if (pollfd_ptr[pfdi].revents & POLLOUT) {
 						tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
-#if 0
+#if 1
 						send_to_tmp_and_change_state(tmp);
 #endif
 						pollfd_ptr[pfdi].fd = -1;

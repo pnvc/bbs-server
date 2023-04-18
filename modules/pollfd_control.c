@@ -89,7 +89,8 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 				break;
 			default:
 				break;
+		}
 		f = f->next;
+		*pfli = pfi;
 	}
-	*pfli = pfi;
 }

@@ -25,7 +25,7 @@ typedef enum state {
 	login_bad_p,
 	login_success,
 	online_guest,
-	online_login,
+	online_login
 } _state;
 
 typedef struct connect {

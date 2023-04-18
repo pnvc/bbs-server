@@ -5,7 +5,7 @@
 extern char *SCREEN_FILE_BUF;
 extern size_t SCREEN_FILE_BUF_len;
 
-#if 0
+#if 1
 static const char noscreen_msg[] = "No screen file :(\n";
 static const char after_screen_msg[] = "Send one of commands to access: GUEST, LOGIN, REG\n";
 #endif
@@ -20,7 +20,7 @@ _connect *comparison_pollfd_with_connect(_connect *f, const int32_t pollfd_fd)
 	}
 	return NULL;
 }
-#if 0
+#if 1
 void send_to_tmp_and_change_state(_connect *c)
 {
 	switch (c->st) {
