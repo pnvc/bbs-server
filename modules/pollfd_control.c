@@ -37,11 +37,11 @@ void narrow_pollfd_array(struct pollfd *pf, size_t *pfli)
 	size_t i;
 	size_t tmp;
 	size_t p = *pfli;
-	for (i = 1; i <= p; i++) {
+	for (i = 1; i < p; i++) {
 		if (pf[i].fd < 0) {
 			tmp = i;
-			for (++i; i <= p && i < 0; i++);
-			if (i <= p) {
+			for (++i; i < p && i < 0; i++);
+			if (i < p) {
 				pf[tmp].fd += pf[i].fd;
 				pf[i].fd = pf[tmp].fd - pf[i].fd;
 				pf[tmp].fd -= pf[i].fd;
@@ -49,8 +49,8 @@ void narrow_pollfd_array(struct pollfd *pf, size_t *pfli)
 			}
 		}
 	}
-	for (i = 1; pf[i].fd > 0; i++);
-*pfli = i;
+	for (i = 1; pf[i].fd > -1; i++);
+	*pfli = i;
 }
 
 void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t pfds_len, _connect *f)
