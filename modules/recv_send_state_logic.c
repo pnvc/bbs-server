@@ -1,4 +1,5 @@
 #include "../headers/recv_send_state_logic.h"
+#include <stdio.h>
 #include <string.h>
 #include <sys/syslog.h>
 
@@ -15,12 +16,15 @@ static const char command_reg[] = "REG\r\n";
 static const char guest_choise_msg[] = "> Welcome, guest. You have next command: LIST, EXIT, DOWNLOAD\n";
 static const char reg_choise_msg[] = "> Please enter the login you wish\n";
 static const char reg_choise_p_msg[] = "> Enter the password you with\n";
-static const char reg_bad_l_msg[] = "> You need more 4 symbols or this login is busy\n";
-static const char reg_bad_p_msg[] = "> You need more 4 symbols\n";
+static const char reg_bad_l_msg[] = "> You need more 4 and less 20 symbols or this login is busy\n";
+static const char reg_bad_p_msg[] = "> You need more 4 and less 50 symbols\n";
 static const char unknown_command_msg[] = "> Unknown command, repeat please :)\n";
 static const char good_bye_msg[] = "> Good bye :)\n";
 
 char login_guest[] = "Guest";
+
+static FILE *fa;
+static char buf_read_account_file[72];
 
 _connect *comparison_pollfd_with_connect(_connect *f, const int32_t pollfd_fd)
 {
@@ -132,10 +136,30 @@ void check_recv_from_tmp_and_change_state(_connect *c, const char *buf)
 			break;
 		case reg_l:
 			c->st = reg_choise_p;
-			if (!buf[6]) {
+			if (!buf[6] || buf[22]) {
 				c->st = reg_bad_l;
+			} else {
+				fa = fopen((const char*)ACCOUNTS_FILE, "r");
+				if (!fa) {
+					syslog(LOG_CRIT, "Unable open accounts file for checking login: %s", strerror(errno));
+					c->st = off;
+				}
+#if 0
+				else {
+					while (fgets(buf_read_account_file, sizeof(buf_read_account_file), fa))  {
+						if (!compare_new_login_with_accounts((const char*)buf, (const char*)buf_read_account_file)) {
+							c->st = reg_bad_l;
+						} else {
+							c->st = reg_choise_p;
+							if (make_connect_login(c->buf, (const char*)buf) < 0) {
+								syslog(LOG_CRIT, "Unable create login: %s", strerror(errno));
+								c->st = off;
+							}
+						}
+					}
+				}
+#endif
 			}
-			/* Im here. Check unique login -> add new login -> set state respectively. */
 			break;
 		default:
 			break;
