@@ -26,6 +26,7 @@ typedef enum state {
 	login_success,
 	online_guest,
 	online_login,
+	unknown_command,
 	good_bye
 } _state;
 

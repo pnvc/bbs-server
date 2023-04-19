@@ -72,6 +72,7 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case login_bad_l:
 			case login_bad_p:
 			case login_success:
+			case unknown_command:
 			case good_bye:
 				pfds[pfi].fd = f->fd;
 				pfds[pfi].events = POLLOUT;

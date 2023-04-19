@@ -173,7 +173,7 @@ start:
 							tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
 							if (!recv_return) {
 								tmp->st = off;
-							} else if (!strncmp((const char*)buf, "exit", 4)) {
+							} else if (!strncmp((const char*)buf, "EXIT", 4)) {
 								tmp->st = good_bye;
 							} else {
 								check_recv_from_tmp_and_change_state(tmp, (const char*)buf);

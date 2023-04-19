@@ -1,4 +1,5 @@
 #include "../headers/connections.h"
+#include <sys/socket.h>
 
 int32_t create_connect(_connect **f, _connect **l, const int32_t fd)
 {
@@ -22,6 +23,8 @@ int32_t create_connect(_connect **f, _connect **l, const int32_t fd)
 	tmp->st = screen;
 	tmp->login = NULL;
 	memset(tmp->buf, 0, sizeof(tmp->buf));
+	tmp->rights = 3;
+	tmp->file_position = 0;
 	tmp->next = tmp->prev = NULL;
 	tmp->rights = 3;
 	if (*l) {
@@ -42,7 +45,7 @@ void close_and_remove_off_connections(_connect **f, _connect **l)
 	}
 	while (tmp) {
 		if (tmp->st == off) {
-			if (tmp->login) {
+			if (tmp->login && tmp->login != login_guest) {
 				free(tmp->login);
 			}
 			tmp_free = tmp;
@@ -59,6 +62,8 @@ void close_and_remove_off_connections(_connect **f, _connect **l)
 				*f = *l = NULL;
 			}
 			tmp = tmp->next;
+			shutdown(tmp_free->fd, SHUT_RDWR);
+			close(tmp_free->fd);
 			free(tmp_free);
 		} else {
 			tmp = tmp->next;
