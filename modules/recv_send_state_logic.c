@@ -5,14 +5,20 @@
 extern char *SCREEN_FILE_BUF;
 extern size_t SCREEN_FILE_BUF_len;
 
-static const char noscreen_msg[] = "No screen file :(\n";
-static const char after_screen_msg[] = "Send one of commands to access: GUEST, LOGIN, REG\n";
+extern char *ACCOUNTS_FILE;
+
+static const char noscreen_msg[] = "> No screen file :(\n";
+static const char after_screen_msg[] = "> Send one of commands to access: GUEST, LOGIN, REG\n";
 static const char command_guest[] = "GUEST\r\n";
 static const char command_login[] = "LOGIN\r\n";
 static const char command_reg[] = "REG\r\n";
-static const char guest_choise_msg[] = "Welcome, guest. You have next command: LIST, EXIT, DOWNLOAD\n";
-static const char unknown_command_msg[] = "Unknown command, repeat please :)\n";
-static const char good_bye_msg[] = "Good bye :)\n";
+static const char guest_choise_msg[] = "> Welcome, guest. You have next command: LIST, EXIT, DOWNLOAD\n";
+static const char reg_choise_msg[] = "> Please enter the login you wish\n";
+static const char reg_choise_p_msg[] = "> Enter the password you with\n";
+static const char reg_bad_l_msg[] = "> You need more 4 symbols or this login is busy\n";
+static const char reg_bad_p_msg[] = "> You need more 4 symbols\n";
+static const char unknown_command_msg[] = "> Unknown command, repeat please :)\n";
+static const char good_bye_msg[] = "> Good bye :)\n";
 
 char login_guest[] = "Guest";
 
@@ -52,10 +58,39 @@ void send_to_tmp_and_change_state(_connect *c)
 		case guest_choise:
 			c->st = online_guest;
 			if (send(c->fd, guest_choise_msg, sizeof(guest_choise_msg) - 1, 0) < 0) {
-				syslog(LOG_CRIT, "Unable to send welcome message for guest ro %d socket: %s", c->fd, strerror(errno));
+				syslog(LOG_CRIT, "Unable to send welcome message for guest to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
 			}
 			break;
+		case reg_choise:
+			c->st = reg_l;
+			if (send(c->fd, reg_choise_msg, sizeof(reg_choise_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send reg choise message for user to %d socket: %s", c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case reg_choise_p:
+			c->st = reg_p;
+			if (send(c->fd, reg_choise_p_msg, sizeof(reg_choise_p_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send reg choise password message for user to %d socket: %s", c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case reg_bad_l:
+			c->st = reg_l;
+			if (send(c->fd, reg_bad_l_msg, sizeof(reg_bad_l_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send reg bad login message for user to %d socket: %s", c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case reg_bad_p:
+			c->st = reg_p;
+			if (send(c->fd, reg_bad_p_msg, sizeof(reg_bad_p_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send reg bad password message for user to %d socket: %s", c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+/* -------------------------------------------------------------------- */
 		case unknown_command:
 			if (!c->login) {
 				c->st = rgl_choise;
@@ -94,6 +129,13 @@ void check_recv_from_tmp_and_change_state(_connect *c, const char *buf)
 			} else {
 				c->st = unknown_command;
 			}
+			break;
+		case reg_l:
+			c->st = reg_choise_p;
+			if (!buf[6]) {
+				c->st = reg_bad_l;
+			}
+			/* Im here. Check unique login -> add new login -> set state respectively. */
 			break;
 		default:
 			break;

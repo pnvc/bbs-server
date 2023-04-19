@@ -12,6 +12,7 @@ typedef enum state {
 	after_screen,
 	rgl_choise,
 	reg_choise,
+	reg_choise_p,
 	guest_choise,
 	login_choise,
 	reg_l,

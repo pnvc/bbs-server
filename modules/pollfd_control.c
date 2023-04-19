@@ -64,6 +64,7 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case screen:
 			case after_screen:
 			case reg_choise:
+			case reg_choise_p:
 			case guest_choise:
 			case login_choise:
 			case reg_bad_l:

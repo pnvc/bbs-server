@@ -5,12 +5,14 @@
 
 extern volatile sig_atomic_t loop_is_possible, config_update;	/* signal_handler.c */
 
-char *SCREEN_FILE_BUF;											/* the buf contains screen file */
+char *SCREEN_FILE_BUF;											/* this buf contains screen file */
 size_t SCREEN_FILE_BUF_len;
+
+char *ACCOUNTS_FILE;											/* this file need for recv_send_state_logic.c module */
 
 int32_t main()
 {
-	char *IP, *PORT, *DIRECTORY, *SCREEN_FILE, *ACCOUNTS_FILE;	/* the future strings for configuration */
+	char *IP, *PORT, *DIRECTORY, *SCREEN_FILE;					/* the future strings for configuration */
 	int32_t ls;													/* listen socket */
 	int32_t ipr;												/* inet_pton return */
 	int32_t optval;												/* setsockopt access value */
