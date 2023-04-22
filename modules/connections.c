@@ -23,10 +23,9 @@ int32_t create_connect(_connect **f, _connect **l, const int32_t fd)
 	tmp->st = screen;
 	tmp->login = NULL;
 	memset(tmp->buf, 0, sizeof(tmp->buf));
-	tmp->rights = 3;
+	tmp->rights = 4;
 	tmp->file_position = 0;
 	tmp->next = tmp->prev = NULL;
-	tmp->rights = 3;
 	if (*l) {
 		tmp->prev = *l;
 		*l = (*l)->next = tmp;

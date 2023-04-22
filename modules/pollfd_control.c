@@ -67,6 +67,7 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case reg_choise_p:
 			case guest_choise:
 			case login_choise:
+			case login_choise_p:
 			case reg_bad_l:
 			case reg_bad_p:
 			case reg_success:
@@ -75,6 +76,9 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case login_success:
 			case unknown_command:
 			case good_bye:
+			case online_login_r:
+			case online_admin:
+			case online_super:
 				pfds[pfi].fd = f->fd;
 				pfds[pfi].events = POLLOUT;
 				++pfi;

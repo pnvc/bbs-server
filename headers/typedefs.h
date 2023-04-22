@@ -15,6 +15,7 @@ typedef enum state {
 	reg_choise_p,
 	guest_choise,
 	login_choise,
+	login_choise_p,
 	reg_l,
 	reg_p,
 	reg_bad_l,
@@ -27,8 +28,12 @@ typedef enum state {
 	login_success,
 	online_guest,
 	online_login,
+	online_login_r,
+	online_admin,
+	online_super,
 	unknown_command,
-	good_bye
+	good_bye,
+
 } _state;
 
 typedef struct connect {
@@ -38,7 +43,7 @@ typedef struct connect {
 	char *login;
 	char buf[1450];
 	char file_position;
-	char rights; /*0,1,2,3 (0 = su, 1 = a, 2 = u, 3 = g)*/
+	char rights; /*0,1,2,3,4 (0 = su, 1 = a, 2 = u, 3 = u*, 4 = g)*/
 } _connect;
 
 #endif

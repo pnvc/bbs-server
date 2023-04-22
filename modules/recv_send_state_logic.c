@@ -14,8 +14,8 @@ static const char command_guest[] = "GUEST\r\n";
 static const char command_login[] = "LOGIN\r\n";
 static const char command_reg[] = "REG\r\n";
 static const char guest_choise_msg[] = "> Welcome, guest. You have next command: LIST, EXIT, DOWNLOAD\n";
-static const char reg_choise_msg[] = "> Please enter the login you wish\n";
-static const char reg_choise_p_msg[] = "> Enter the password you with\n";
+static const char reg_choise_msg[] = "> Please enter the login you wish. Beware, case sensetive!\n";
+static const char reg_choise_p_msg[] = "> Enter the password you wish\n";
 static const char reg_bad_l_msg[] = "> You need more 4 and less 20 symbols or this login is busy\n";
 static const char reg_bad_p_msg[] = "> You need more 4 and less 50 symbols\n";
 static const char unknown_command_msg[] = "> Unknown command, repeat please :)\n";
@@ -24,7 +24,6 @@ static const char good_bye_msg[] = "> Good bye :)\n";
 char login_guest[] = "Guest";
 
 static FILE *fa;
-static char buf_read_account_file[72];
 
 _connect *comparison_pollfd_with_connect(_connect *f, const int32_t pollfd_fd)
 {
@@ -121,6 +120,9 @@ void send_to_tmp_and_change_state(_connect *c)
 
 void check_recv_from_tmp_and_change_state(_connect *c, const char *buf)
 {
+	char buf_read_account_file[74];
+	size_t buf_read_account_file_length = 74;
+	size_t new_login_length;
 	switch (c->st) {
 		case rgl_choise:
 			if (!strncmp(buf, (const char*)command_guest, 7)) {
@@ -143,25 +145,51 @@ void check_recv_from_tmp_and_change_state(_connect *c, const char *buf)
 				if (!fa) {
 					syslog(LOG_CRIT, "Unable open accounts file for checking login: %s", strerror(errno));
 					c->st = off;
-				}
-#if 0
-				else {
+				} else {
 					while (fgets(buf_read_account_file, sizeof(buf_read_account_file), fa))  {
-						if (!compare_new_login_with_accounts((const char*)buf, (const char*)buf_read_account_file)) {
+						if (!(new_login_length = compare_new_login_with_accounts((const char*)buf, (const char*)buf_read_account_file))) {
 							c->st = reg_bad_l;
-						} else {
-							c->st = reg_choise_p;
-							if (make_connect_login(c->buf, (const char*)buf) < 0) {
-								syslog(LOG_CRIT, "Unable create login: %s", strerror(errno));
-								c->st = off;
-							}
+							break;
+						}
+						memset(buf_read_account_file, 0, buf_read_account_file_length);
+					}
+					if (c->st == reg_choise_p) {
+						if (make_connect_login(c->buf, (const char*)buf, new_login_length) < 0) {
+							syslog(LOG_CRIT, "Unable create login: %s", strerror(errno));
+							c->st = off;
 						}
 					}
 				}
-#endif
 			}
+			break;
+		case reg_p:
+			;
 			break;
 		default:
 			break;
 	}
+}
+
+size_t compare_new_login_with_accounts(const char *new_login, const char *buf_read_account_file)
+{
+	size_t i;
+	for (i = 4; new_login[i] != '\r'; i++);
+	if (!strncmp((const char*)new_login, (const char*)buf_read_account_file, i)) {
+		if (buf_read_account_file[i] == ' ') {
+			return 0;
+		}
+	}
+	return i;
+}
+
+int32_t make_connect_login(char *connect_login, const char *temp_buf_login, size_t new_login_length)
+{
+	connect_login = (char*)malloc(sizeof(char) * new_login_length + 1);
+	if (!connect_login) {
+		return -1;
+	}
+	memcpy(connect_login, temp_buf_login, new_login_length);
+	connect_login[new_login_length] = 0;
+	syslog(LOG_INFO, "new login %s", connect_login);
+	return 0;
 }
