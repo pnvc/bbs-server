@@ -26,7 +26,7 @@ typedef enum state {
 	login_bad_l,
 	login_bad_p,
 	login_success,
-	online_guest,
+	online_guest_w,
 	online_login,
 	online_login_w,
 	online_login_r,

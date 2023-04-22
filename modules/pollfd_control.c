@@ -76,6 +76,7 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case login_success:
 			case unknown_command:
 			case good_bye:
+			case online_login:
 			case online_login_r:
 			case online_admin:
 			case online_super:
@@ -88,8 +89,11 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case reg_p:
 			case login_l:
 			case login_p:
-			case online_guest:
-			case online_login:
+			case online_guest_w:
+			case online_login_w:
+			case online_login_r_w:
+			case online_admin_w:
+			case online_super_w:
 				pfds[pfi].fd = f->fd;
 				pfds[pfi].events = POLLIN;
 				++pfi;

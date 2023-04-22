@@ -60,7 +60,7 @@ void send_to_tmp_and_change_state(_connect *c)
 			}
 			break;
 		case guest_choise:
-			c->st = online_guest;
+			c->st = online_guest_w;
 			if (send(c->fd, guest_choise_msg, sizeof(guest_choise_msg) - 1, 0) < 0) {
 				syslog(LOG_CRIT, "Unable to send welcome message for guest to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
@@ -111,7 +111,7 @@ void send_to_tmp_and_change_state(_connect *c)
 			if (!c->login) {
 				c->st = rgl_choise;
 			} else if (c->login == login_guest) {
-				c->st = online_guest;
+				c->st = online_guest_w;
 			} else {
 				c->st = online_login;
 			}
@@ -197,7 +197,11 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 				}
 			}
 			break;
+		case online_guest_w:
+			c->st = guest_choise;
+			break;
 		case online_login_w:
+			c->st = online_login;
 			break;
 		default:
 			break;
