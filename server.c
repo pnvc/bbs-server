@@ -178,7 +178,7 @@ start:
 							} else if (!strncmp((const char*)buf, "EXIT", 4)) {
 								tmp->st = good_bye;
 							} else {
-								check_recv_from_tmp_and_change_state(tmp, (const char*)buf);
+								check_recv_from_tmp_and_change_state(tmp, buf);
 								memset(buf, 0, sizeof(buf));
 							}
 							pollfd_ptr[pfdi].fd = -1;

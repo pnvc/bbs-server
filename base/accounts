@@ -1,1 +1,4 @@
+# Format: "login password rights"
+# * = can upload
+
 admin admin *
