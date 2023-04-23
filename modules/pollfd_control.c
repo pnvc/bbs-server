@@ -71,8 +71,7 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case reg_bad_l:
 			case reg_bad_p:
 			case reg_success:
-			case login_bad_l:
-			case login_bad_p:
+			case login_bad:
 			case login_success:
 			case unknown_command:
 			case good_bye:

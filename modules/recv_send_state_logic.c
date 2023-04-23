@@ -20,8 +20,13 @@ static const char reg_choise_p_msg[] = "> Enter the password you wish\n";
 static const char reg_bad_l_msg[] = "> You need more 4 and less 20 symbols or this login is busy\n";
 static const char reg_bad_p_msg[] = "> You need more 4 and less 50 symbols\n";
 static const char online_login_msg[] = "> You have next commands: LIST, EXIT, DOWNLOAD\n";
+static const char login_choise_msg[] = "> Enter loging\n";
+static const char login_choise_p_msg[] = "> Enter password\n";
+static const char login_bad_msg[] = "This user doesn't exists\n";
+
 static const char unknown_command_msg[] = "> Unknown command, repeat please :)\n";
 static const char good_bye_msg[] = "> Good bye :)\n";
+
 
 char login_guest[] = "Guest";
 
@@ -69,28 +74,28 @@ void send_to_tmp_and_change_state(_connect *c)
 		case reg_choise:
 			c->st = reg_l;
 			if (send(c->fd, reg_choise_msg, sizeof(reg_choise_msg) - 1, 0) < 0) {
-				syslog(LOG_CRIT, "Unable to send reg choise message for user to %d socket: %s", c->fd, strerror(errno));
+				syslog(LOG_CRIT, "Unable to send registration choise message for user to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
 			}
 			break;
 		case reg_choise_p:
 			c->st = reg_p;
 			if (send(c->fd, reg_choise_p_msg, sizeof(reg_choise_p_msg) - 1, 0) < 0) {
-				syslog(LOG_CRIT, "Unable to send reg choise password message for user to %d socket: %s", c->fd, strerror(errno));
+				syslog(LOG_CRIT, "Unable to send registration choise password message for user to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
 			}
 			break;
 		case reg_bad_l:
 			c->st = reg_l;
 			if (send(c->fd, reg_bad_l_msg, sizeof(reg_bad_l_msg) - 1, 0) < 0) {
-				syslog(LOG_CRIT, "Unable to send reg bad login message for user to %d socket: %s", c->fd, strerror(errno));
+				syslog(LOG_CRIT, "Unable to send registration bad login message for user to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
 			}
 			break;
 		case reg_bad_p:
 			c->st = reg_p;
 			if (send(c->fd, reg_bad_p_msg, sizeof(reg_bad_p_msg) - 1, 0) < 0) {
-				syslog(LOG_CRIT, "Unable to send reg bad password message for user to %d socket: %s", c->fd, strerror(errno));
+				syslog(LOG_CRIT, "Unable to send registration bad password message for user to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
 			}
 			break;
@@ -98,7 +103,24 @@ void send_to_tmp_and_change_state(_connect *c)
 			c->rights = 3;
 			c->st = online_login;
 			sprintf(reg_success_msg, "> Welcome, dear %s\n", c->login);
-			send(c->fd, (const char*)reg_success_msg, strlen(reg_success_msg), 0);
+			if (send(c->fd, (const char*)reg_success_msg, strlen(reg_success_msg), 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send registration success message for user to %d socket: %s", c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case login_choise:
+			c->st = login_l;
+			if (send(c->fd, login_choise_msg, sizeof(login_choise_msg), 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send login choise message for user to %d socket: %s", c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case login_choise_p:
+			c->st = login_p;
+			if (send(c->fd, login_choise_p_msg, sizeof(login_choise_msg), 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send login choise password message for user to %d socket: %s", c->fd, strerror(errno));
+				c->st = off;
+			}
 			break;
 		case online_login:
 			c->st = online_login_w;
@@ -141,12 +163,12 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 	char new_login_password[72] = {0};
 	switch (c->st) {
 		case rgl_choise:
-			if (!strncmp(buf, (const char*)command_guest, 7)) {
+			if (!strncmp(buf, (const char*)command_guest, 7) && !buf[7]) {
 				c->st = guest_choise;
 				c->login = login_guest;
-			} else if (!strncmp(buf, (const char*)command_login, 7)) {
+			} else if (!strncmp(buf, (const char*)command_login, 7) && !buf[7]) {
 				c->st = login_choise;
-			} else if (!strncmp(buf, (const char*)command_reg, 5)) {
+			} else if (!strncmp(buf, (const char*)command_reg, 5) && !buf[5]) {
 				c->st = reg_choise;
 			} else {
 				c->st = unknown_command;
@@ -196,6 +218,12 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 					fclose(fa);
 				}
 			}
+			break;
+		case login_l:
+			c->st = login_choise_p;
+			break;
+		case login_p:
+			c->st = login_choise;
 			break;
 		case online_guest_w:
 			c->st = guest_choise;
