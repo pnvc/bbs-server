@@ -21,9 +21,18 @@ static const char reg_bad_l_msg[] = "> You need more 4 and less 20 symbols or th
 static const char reg_bad_p_msg[] = "> You need more 4 and less 50 symbols\n";
 static const char online_login_msg[] = "> You have next commands: LIST, EXIT, DOWNLOAD\n";
 static const char login_choise_msg[] = "> Enter loging\n";
+static const char login_spaces_msg[] = "> No spaces, please\n";
+static const char login_short_or_long_l_msg[] = "> You need more than 4 symbols for login and lower than 20\n";
+static const char login_short_or_long_p_msg[] = "> You need more than 4 symbols for password and lower than 52\n";
 static const char login_choise_p_msg[] = "> Enter password\n";
-static const char login_bad_msg[] = "This user doesn't exists\n";
-
+static const char login_bad_msg[] = "> This user doesn't exists\n";
+static const char online_login_r_msg[] = "> You have next commands: LIST, EXIT, DOWNLOAD, UPLOAD, CHNGFILECONF, RMFILE\n";
+static const char online_admin_msg[] = "> You have next commands:\n> LIST, EXIT, DOWNLOAD, UPLOAD\n> CHNGFILECONF, RMFILE\n\
+> CHNGFILECONFUSR, RMFILEUSR\n> ADDUSR, RMUSR\n";
+static const char online_super_msg[] = "> You have next commands:\n> LIST, EXIT, DOWNLOAD, UPLOAD\n> CHNGFILECONF, RMFILE\n\
+> CHNGFILECONFUSR, RMFILEUSR\n> ADDUSR, RMUSR\n\
+> CHECKMSG, RMMSG\n\
+> RMADMIN\n";
 static const char unknown_command_msg[] = "> Unknown command, repeat please :)\n";
 static const char good_bye_msg[] = "> Good bye :)\n";
 
@@ -43,7 +52,7 @@ _connect *comparison_pollfd_with_connect(_connect *f, const int32_t pollfd_fd)
 
 void send_to_tmp_and_change_state(_connect *c)
 {
-	char reg_success_msg[37];
+	char success_msg[37];
 	switch (c->st) {
 		case screen:
 			c->st = after_screen;
@@ -102,23 +111,71 @@ void send_to_tmp_and_change_state(_connect *c)
 		case reg_success:
 			c->rights = 3;
 			c->st = online_login;
-			sprintf(reg_success_msg, "> Welcome, dear %s\n", c->login);
-			if (send(c->fd, (const char*)reg_success_msg, strlen(reg_success_msg), 0) < 0) {
+			sprintf(success_msg, "> Welcome, dear %s\n", c->login);
+			if (send(c->fd, (const char*)success_msg, strlen(success_msg), 0) < 0) {
 				syslog(LOG_CRIT, "Unable to send registration success message for user to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
 			}
 			break;
 		case login_choise:
 			c->st = login_l;
-			if (send(c->fd, login_choise_msg, sizeof(login_choise_msg), 0) < 0) {
+			if (send(c->fd, login_choise_msg, sizeof(login_choise_msg) - 1, 0) < 0) {
 				syslog(LOG_CRIT, "Unable to send login choise message for user to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
 			}
 			break;
+		case login_spaces:
+			if (c->login) {
+				c->st = login_p;
+			} else {
+				c->st = login_l;
+			}
+			if (send(c->fd, login_spaces_msg, sizeof(login_spaces_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send login choise message for user to %d socket: %s", c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case login_short_or_long_l:
+			c->st = login_l;
+			if (send(c->fd, login_short_or_long_l_msg, sizeof(login_short_or_long_l_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send login short or long message for user to %d socket: %s", c->fd, strerror(errno));
+			}
+			break;
+		case login_short_or_long_p:
+			c->st = login_p;
+			if (send(c->fd, login_short_or_long_p_msg, sizeof(login_short_or_long_p_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send login short or loing password message for user to %d socket: %s", c->fd, strerror(errno));
+			}
+			break;
 		case login_choise_p:
 			c->st = login_p;
-			if (send(c->fd, login_choise_p_msg, sizeof(login_choise_msg), 0) < 0) {
+			if (send(c->fd, login_choise_p_msg, sizeof(login_choise_p_msg) - 1, 0) < 0) {
 				syslog(LOG_CRIT, "Unable to send login choise password message for user to %d socket: %s", c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case login_bad:
+			c->st = login_choise;
+			free(c->login);
+			c->login = NULL;
+			if (send(c->fd, login_bad_msg, sizeof(login_bad_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send login bad message for user to %d socket: %s", c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case login_success:
+			if (c->rights == 3) {
+				c->st = online_login;
+			} else if (c->rights == 2) {
+				c->st = online_login_r;
+			} else if (c->rights == 1) {
+				c->st = online_admin;
+			} else if (c->rights == 0) {
+				c->st = online_super;
+			}
+			sprintf(success_msg, "> Hello, %s\n", c->login);
+			if (send(c->fd, (const char*)success_msg, strlen(success_msg), 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send login success message for user to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
 			}
 			break;
@@ -126,6 +183,28 @@ void send_to_tmp_and_change_state(_connect *c)
 			c->st = online_login_w;
 			if (send(c->fd, online_login_msg, sizeof(online_login_msg) - 1, 0) < 0) {
 				syslog(LOG_CRIT, "Unable to send online login message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case online_login_r:
+			c->st = online_login_r_w;
+			if (send(c->fd, online_login_r_msg, sizeof(online_login_r_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send online login rights message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case online_admin:
+			c->st = online_admin_w;
+			if (send(c->fd, online_admin_msg, sizeof(online_admin_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send online login rights message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case online_super:
+			c->st = online_super_w;
+			if (send(c->fd, online_super_msg, sizeof(online_super_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send online login rights message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				c->st = off;
 			}
 			break;
 /* -------------------------------------------------------------------- */
@@ -156,11 +235,15 @@ void send_to_tmp_and_change_state(_connect *c)
 void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 {
 	FILE *fa;
-	char buf_read_account_file[74];
-	size_t buf_read_account_file_length = 74;
+	char buf_read_account_file[76];
+	size_t buf_read_account_file_length = 76;
 	size_t new_login_length;
 	size_t new_password_length;
 	char new_login_password[72] = {0};
+	uint64_t login_l_buf_length;
+	size_t login_pass_length;
+	size_t acc_login_length;
+	char rs[3];
 	switch (c->st) {
 		case rgl_choise:
 			if (!strncmp(buf, (const char*)command_guest, 7) && !buf[7]) {
@@ -185,6 +268,10 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 					c->st = off;
 				} else {
 					while (fgets(buf_read_account_file, sizeof(buf_read_account_file), fa))  {
+						if (buf_read_account_file[0] == '#' || buf_read_account_file[0] == '\n') {
+							memset(buf_read_account_file, 0, buf_read_account_file_length);
+							continue;
+						}
 						if (!(new_login_length = compare_new_login_with_accounts((const char*)buf, (const char*)buf_read_account_file))) {
 							c->st = reg_bad_l;
 							break;
@@ -220,16 +307,90 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 			}
 			break;
 		case login_l:
+			if (!buf[6] || buf[22]) {
+				c->st = login_short_or_long_l;
+				break;
+			}
+			if (strchr(buf, ' ') || strchr(buf, '\t')) {
+				c->st = login_spaces;
+				break;
+			}
 			c->st = login_choise_p;
+			login_l_buf_length = strlen((const char*)buf) - 2; /* - "\r\n" */
+			c->login = (char*)malloc(sizeof(char) * (login_l_buf_length + 1));
+			if (!c->login) {
+				c->st = off;
+				syslog(LOG_CRIT, "Unable malloc for LOGIN process: %s", strerror(errno));
+			}
+			c->login[login_l_buf_length] = 0;
+			strncpy(c->login, (const char*)buf, login_l_buf_length);
 			break;
 		case login_p:
-			c->st = login_choise;
+			if (!buf[6] || buf[52]) {
+				c->st = login_short_or_long_p;
+				break;
+			}
+			if (strchr(buf, ' ') || strchr(buf, '\t')) {
+				c->st = login_spaces;
+				break;
+			}
+			fa = fopen((const char*)ACCOUNTS_FILE, "r");
+			if (!fa) {
+				syslog(LOG_CRIT, "Unable open accounts file for add user: %s", strerror(errno));
+				c->st = off;
+			} else {
+				c->st = login_bad;
+				while(fgets(buf_read_account_file, 74, fa)) {
+					if (buf_read_account_file[0] == '#' || buf_read_account_file[0] == '\n') {
+						memset(buf_read_account_file, 0, buf_read_account_file_length);
+						continue;
+					}
+					for (acc_login_length = 0; buf_read_account_file[acc_login_length] != ' '; acc_login_length++);
+					login_pass_length = strlen((const char*)buf) - 2;
+					if (strlen((const char*)c->login) == acc_login_length &&
+							!strncmp((const char*)c->login, (const char*)buf_read_account_file, acc_login_length)) {
+						if (!strncmp((const char*)buf, (const char*)(buf_read_account_file + acc_login_length + 1), login_pass_length)) {
+							if (buf_read_account_file[acc_login_length + login_pass_length + 1] == '\n') {
+								c->rights = 3;
+								c->st = login_success;
+								break;
+							}
+							strncpy(rs, (const char*)(buf_read_account_file + acc_login_length + login_pass_length + 2), 3);
+							if (!strncmp((const char*)rs, "***", 3)) {
+								c->rights = 0;
+								c->st = login_success;
+								break;
+							}
+							if (!strncmp((const char*)rs, "**", 2)) {
+								c->rights = 1;
+								c->st = login_success;
+								break;
+							}
+							if (!strncmp((const char*)rs, "*", 1)) {
+								c->rights = 2;
+								c->st = login_success;
+								break;
+							}
+						}
+					}
+				}
+				fclose(fa);
+			}
 			break;
 		case online_guest_w:
 			c->st = guest_choise;
 			break;
 		case online_login_w:
 			c->st = online_login;
+			break;
+		case online_login_r_w:
+			c->st = online_login_r;
+			break;
+		case online_admin_w:
+			c->st = online_admin;
+			break;
+		case online_super_w:
+			c->st = online_super;
 			break;
 		default:
 			break;

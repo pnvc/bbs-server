@@ -175,19 +175,25 @@ start:
 							tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
 							if (!recv_return) {
 								tmp->st = off;
-							} else if (!strncmp((const char*)buf, "EXIT", 4)) {
+							} else if (buf[1449]) {
+								tmp->st = off;
+								memset(buf, 0, 1450);
+							} else if (!strncmp((const char*)buf, "EXIT", 4) && !buf[6]) {
 								tmp->st = good_bye;
+								memset(buf, 0, 6);
 							} else {
 								check_recv_from_tmp_and_change_state(tmp, buf);
-								memset(buf, 0, sizeof(buf));
+								memset(buf, 0, strlen((const char*)buf));
 							}
 							pollfd_ptr[pfdi].fd = -1;
+							pollfd_ptr[pfdi].revents = 0;
 						}
 						--ppoll_return;
 					} else if (pollfd_ptr[pfdi].revents & POLLOUT) {
 						tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
 						send_to_tmp_and_change_state(tmp);
 						pollfd_ptr[pfdi].fd = -1;
+						pollfd_ptr[pfdi].revents = 0;
 						--ppoll_return;
 					}
 				}
