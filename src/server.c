@@ -178,9 +178,9 @@ start:
 							} else if (tmp->st != upload_cyf_w && buf[1449] && buf[1449] != '\n') {
 								tmp->st = off;
 								memset(buf, 0, 1450);
-							} else if (!strncmp((const char*)buf, "EXIT\n", 5) && !buf[6]) {
+							} else if (!strncmp((const char*)buf, "EXIT\n", 5) && !buf[5]) {
 								tmp->st = good_bye;
-								memset(buf, 0, 6);
+								memset(buf, 0, 5);
 							} else {
 								check_recv_from_tmp_and_change_state(tmp, buf);
 								memset(buf, 0, strlen((const char*)buf));
