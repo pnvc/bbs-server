@@ -9,23 +9,23 @@ extern char *ACCOUNTS_FILE;
 
 static const char noscreen_msg[] = "> No screen file :(\n";
 static const char after_screen_msg[] = "> Send one of commands to access: GUEST, LOGIN, REG\n";
-static const char command_guest[7] = "GUEST\r\n";
-static const char command_login[7] = "LOGIN\r\n";
-static const char command_reg[5] = "REG\r\n";
+static const char command_guest[7] = "GUEST\n";
+static const char command_login[7] = "LOGIN\n";
+static const char command_reg[5] = "REG\n";
 #if 0
-static const char command_list[6] = "LIST\r\n";
-static const char command_download[10] = "DOWNLOAD\r\n";
-static const char command_chngfileconf[14] = "CHNGFILECONF\r\n";
-static const char command_rmfile[8] = "RMFILE\r\n";
-static const char command_chngfileconfusr[17] = "CHNGFILECONFUSR\r\n";
-static const char command_rmfileusr[11] = "RMFILEUSR\r\n";
-static const char command_addusr[8] = "ADDUSR\r\n";
-static const char command_rmusr[7] = "RMUSR\r\n";
-static const char command_checkmsg[10] = "CHECKMSG\r\n";
-static const char command_rmmsg[7] = "RMMSG\r\n";
-static const char command_rmadmin[9] = "RMADMIN\r\n";
+static const char command_list[6] = "LIST\n";
+static const char command_download[10] = "DOWNLOAD\n";
+static const char command_chngfileconf[14] = "CHNGFILECONF\n";
+static const char command_rmfile[8] = "RMFILE\n";
+static const char command_chngfileconfusr[17] = "CHNGFILECONFUSR\n";
+static const char command_rmfileusr[11] = "RMFILEUSR\n";
+static const char command_addusr[8] = "ADDUSR\n";
+static const char command_rmusr[7] = "RMUSR\n";
+static const char command_checkmsg[10] = "CHECKMSG\n";
+static const char command_rmmsg[7] = "RMMSG\n";
+static const char command_rmadmin[9] = "RMADMIN\n";
 #endif
-static const char command_upload[8] = "UPLOAD\r\n";
+static const char command_upload[8] = "UPLOAD\n";
 
 static const char guest_choise_msg[] = "> Welcome, guest. You have next command: LIST, EXIT, DOWNLOAD\n";
 static const char reg_choise_msg[] = "> Please enter the login you wish. Beware, case sensetive!\n";
@@ -316,7 +316,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 	size_t buf_read_account_file_length = 76;
 	size_t new_login_length;
 	size_t new_password_length;
-	char new_login_password[72] = {0};
+	char new_login_password[73] = {0};
 	uint64_t login_l_buf_length;
 	size_t login_pass_length;
 	size_t acc_login_length;
@@ -329,12 +329,12 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 	int32_t for_umask = 0177;
 	switch (c->st) {
 		case rgl_choise:
-			if (!strncmp(buf, (const char*)command_guest, 7) && !buf[7]) {
+			if (!strncmp(buf, (const char*)command_guest, 6) && !buf[6]) {
 				c->st = guest_choise;
 				c->login = login_guest;
-			} else if (!strncmp(buf, (const char*)command_login, 7) && !buf[7]) {
+			} else if (!strncmp(buf, (const char*)command_login, 6) && !buf[6]) {
 				c->st = login_choise;
-			} else if (!strncmp(buf, (const char*)command_reg, 5) && !buf[5]) {
+			} else if (!strncmp(buf, (const char*)command_reg, 4) && !buf[4]) {
 				c->st = reg_choise;
 			} else {
 				c->st = unknown_command;
@@ -342,7 +342,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 			break;
 		case reg_l:
 			c->st = reg_choise_p;
-			if (!buf[6] || buf[22]) {
+			if (!buf[5] || buf[21]) {
 				c->st = reg_bad_l;
 			} else {
 				fa = fopen((const char*)ACCOUNTS_FILE, "r");
@@ -373,7 +373,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 			break;
 		case reg_p:
 			c->st = reg_success;
-			if (!buf[6] || buf[52]) {
+			if (!buf[5] || buf[51]) {
 				c->st = reg_bad_p;
 			} else {
 				fa = fopen((const char*)ACCOUNTS_FILE, "a");
@@ -381,7 +381,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 					syslog(LOG_CRIT, "Unable open accounts file for add user: %s", strerror(errno));
 					c->st = off;
 				} else {
-					for (new_password_length = 0; buf[new_password_length] != '\r'; new_password_length++);
+					for (new_password_length = 0; buf[new_password_length] != '\n'; new_password_length++);
 					buf[new_password_length] = 0;
 					sprintf(new_login_password, "%s %s\n", c->login, buf);
 					fwrite((const char*)new_login_password, sizeof(char), strlen(new_login_password), fa);
@@ -390,7 +390,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 			}
 			break;
 		case login_l:
-			if (!buf[6] || buf[22]) {
+			if (!buf[5] || buf[21]) {
 				c->st = login_short_or_long_l;
 				break;
 			}
@@ -399,17 +399,17 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 				break;
 			}
 			c->st = login_choise_p;
-			login_l_buf_length = strlen((const char*)buf) - 2; /* - "\r\n" */
+			login_l_buf_length = strlen((const char*)buf) - 1; /* - "\n" */
 			c->login = (char*)malloc(sizeof(char) * (login_l_buf_length + 1));
 			if (!c->login) {
 				c->st = off;
 				syslog(LOG_CRIT, "Unable malloc for LOGIN process: %s", strerror(errno));
 			}
-			c->login[login_l_buf_length] = 0;
 			strncpy(c->login, (const char*)buf, login_l_buf_length);
+			c->login[login_l_buf_length] = 0;
 			break;
 		case login_p:
-			if (!buf[6] || buf[52]) {
+			if (!buf[5] || buf[51]) {
 				c->st = login_short_or_long_p;
 				break;
 			}
@@ -423,13 +423,13 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 				c->st = off;
 			} else {
 				c->st = login_bad;
-				while(fgets(buf_read_account_file, 74, fa)) {
+				while(fgets(buf_read_account_file, 76, fa)) {
 					if (buf_read_account_file[0] == '#' || buf_read_account_file[0] == '\n') {
 						memset(buf_read_account_file, 0, buf_read_account_file_length);
 						continue;
 					}
 					for (acc_login_length = 0; buf_read_account_file[acc_login_length] != ' '; acc_login_length++);
-					login_pass_length = strlen((const char*)buf) - 2;
+					login_pass_length = strlen((const char*)buf) - 1;
 					if (strlen((const char*)c->login) == acc_login_length &&
 							!strncmp((const char*)c->login, (const char*)buf_read_account_file, acc_login_length)) {
 						if (!strncmp((const char*)buf, (const char*)(buf_read_account_file + acc_login_length + 1), login_pass_length)) {
@@ -467,7 +467,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 			c->st = online_login;
 			break;
 		case online_login_r_w:
-			if (!strncmp(buf, command_upload, 8) && !buf[8]) {
+			if (!strncmp(buf, command_upload, 7) && !buf[7]) {
 				c->st = upload_config;
 			} else {
 				c->st = unknown_command;
@@ -480,15 +480,12 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 			c->st = online_super;
 			break;
 		case upload_config_w:
-			if (!buf[6]) {
+			if (!buf[5]) {
 				c->st = upload_config_error;
 			} else {
 				umask(for_umask);
 				if (strchr((const char*)buf, ' ')) {
-					nfssp = 4;
-					while(buf[nfssp] != ' ') {
-						++nfssp;
-					}
+					for (nfssp = 4; buf[nfssp] != ' '; nfssp++);
 					if (nfssp > 25) {
 						c->st = upload_config_error;
 					}
@@ -549,7 +546,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 size_t compare_new_login_with_accounts(const char *new_login, const char *buf_read_account_file)
 {
 	size_t i;
-	for (i = 4; new_login[i] != '\r'; i++);
+	for (i = 4; new_login[i] != '\n'; i++);
 	if (!strncmp((const char*)new_login, (const char*)buf_read_account_file, i)) {
 		if (buf_read_account_file[i] == ' ') {
 			return 0;

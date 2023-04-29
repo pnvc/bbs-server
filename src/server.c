@@ -175,10 +175,10 @@ start:
 							tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
 							if (!recv_return) {
 								tmp->st = off;
-							} else if (tmp->st != upload_cyf_w && buf[1449]) {
+							} else if (tmp->st != upload_cyf_w && buf[1449] && buf[1449] != '\n') {
 								tmp->st = off;
 								memset(buf, 0, 1450);
-							} else if (!strncmp((const char*)buf, "EXIT", 4) && !buf[6]) {
+							} else if (!strncmp((const char*)buf, "EXIT\n", 5) && !buf[6]) {
 								tmp->st = good_bye;
 								memset(buf, 0, 6);
 							} else {
