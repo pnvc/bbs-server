@@ -42,6 +42,7 @@ typedef enum state {
 	upload_config_error,
 	upload_choose_your_file,
 	upload_cyf_w,
+	upload_success,
 	unknown_command,
 	good_bye
 } _state;

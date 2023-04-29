@@ -1,3 +1,4 @@
+#include <stdio.h>
 #define _XOPEN_SOURCE 500 /* for the snprintf */
 #include "../headers/recv_send_state_logic.h"
 
@@ -53,6 +54,7 @@ static const char upload_config_msg[] = "> Enter the file name and access for us
 > \"File\"\n";
 static const char upload_config_error_msg[] = "> Error with file name length (4 symbols min, 25 symbols max) or this file exists, try again\n";
 static const char upload_choose_your_file_msg[] = "> Enter the file name you want to download :)\n";
+static const char upload_succes_msg[] = "> Upload success!";
 static const char unknown_command_msg[] = "> Unknown command, repeat please :)\n";
 static const char good_bye_msg[] = "> Good bye :)\n";
 
@@ -248,6 +250,23 @@ void send_to_tmp_and_change_state(_connect *c)
 				c->st = off;
 			}
 			break;
+		case upload_success:
+			switch (c->rights) {
+				case 0:
+					c->st = online_super;
+					break;
+				case 1:
+					c->st = online_admin;
+					break;
+				case 2:
+					c->st = online_login_r;
+					break;
+			}
+			if (send(c->fd, upload_succes_msg, sizeof(upload_succes_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send upload success message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
 /* -------------------------------------------------------------------- */
 		case unknown_command:
 			if (!c->login) {
@@ -305,9 +324,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 	size_t nfssp; /* new file separator space (' ') position */
 	char *new_file_config;
 	char *new_file;
-#if 0
 	FILE *nf, *nfc;
-#endif
 	int32_t nfc_fd, nf_fd;
 	int32_t for_umask = 0177;
 	switch (c->st) {
@@ -509,6 +526,20 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 			}
 			break;
 		case upload_cyf_w:
+			if (!(nf = fopen((const char*)c->upload_file_name, "a"))) {
+				syslog(LOG_CRIT, "Unable to open file for uploading user %s socket %d: %s", c->login, c->fd, strerror(errno));
+				c->st = off;
+				break;
+			} else if (!buf[1450]) {
+				fwrite((const char*)buf, sizeof(char), strlen((const char*)buf), nf);
+				free(c->upload_file_name);
+				c->upload_file_name = NULL;
+				c->st = upload_success;
+			} else {
+				fwrite((const char*)buf, sizeof(char), 1450, nf);
+				c->st = upload_cyf_w;
+			}
+			fclose(nf);
 			break;
 		default:
 			break;

@@ -1,27 +1,27 @@
 #include "../headers/connections.h"
-#include <sys/socket.h>
 
 int32_t create_connect(_connect **f, _connect **l, const int32_t fd)
 {
 	_connect *tmp;
 	int32_t fd_flags;
 	if ((fd_flags = fcntl(fd, F_GETFL)) < 0) {
-		syslog(LOG_INFO, "fcntl get flags");
+		syslog(LOG_INFO, "Unable to get fcntl flags: %s", strerror(errno));
 		return -1;
 	}
 	fd_flags |= O_NONBLOCK;
 	if (fcntl(fd, F_SETFL, fd_flags) < 0) {
-		syslog(LOG_INFO, "fcntl set flags");
+		syslog(LOG_INFO, "Unable to set fcntl flags connect: %s", strerror(errno));
 		return -1;
 	}
 	tmp = (_connect*)malloc(sizeof(*tmp));
 	if (!tmp) {
-		syslog(LOG_INFO, "create connect malloc");
+		syslog(LOG_INFO, "Unable to create connect malloc: %s", strerror(errno));
 		return -1;
 	}
 	tmp->fd = fd;
 	tmp->st = screen;
 	tmp->login = NULL;
+	tmp->upload_file_name = NULL;
 	memset(tmp->buf, 0, sizeof(tmp->buf));
 	tmp->rights = 4;
 	tmp->file_position = 0;

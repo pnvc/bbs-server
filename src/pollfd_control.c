@@ -85,6 +85,7 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case upload_config:
 			case upload_config_error:
 			case upload_choose_your_file:
+			case upload_success:
 				pfds[pfi].fd = f->fd;
 				pfds[pfi].events = POLLOUT;
 				++pfi;
