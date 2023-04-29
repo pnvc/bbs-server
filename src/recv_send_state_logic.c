@@ -1,8 +1,5 @@
+#define _XOPEN_SOURCE 500 /* for the snprintf */
 #include "../headers/recv_send_state_logic.h"
-#include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/syslog.h>
 
 extern char *SCREEN_FILE_BUF;
 extern size_t SCREEN_FILE_BUF_len;
@@ -11,9 +8,24 @@ extern char *ACCOUNTS_FILE;
 
 static const char noscreen_msg[] = "> No screen file :(\n";
 static const char after_screen_msg[] = "> Send one of commands to access: GUEST, LOGIN, REG\n";
-static const char command_guest[] = "GUEST\r\n";
-static const char command_login[] = "LOGIN\r\n";
-static const char command_reg[] = "REG\r\n";
+static const char command_guest[7] = "GUEST\r\n";
+static const char command_login[7] = "LOGIN\r\n";
+static const char command_reg[5] = "REG\r\n";
+#if 0
+static const char command_list[6] = "LIST\r\n";
+static const char command_download[10] = "DOWNLOAD\r\n";
+static const char command_chngfileconf[14] = "CHNGFILECONF\r\n";
+static const char command_rmfile[8] = "RMFILE\r\n";
+static const char command_chngfileconfusr[17] = "CHNGFILECONFUSR\r\n";
+static const char command_rmfileusr[11] = "RMFILEUSR\r\n";
+static const char command_addusr[8] = "ADDUSR\r\n";
+static const char command_rmusr[7] = "RMUSR\r\n";
+static const char command_checkmsg[10] = "CHECKMSG\r\n";
+static const char command_rmmsg[7] = "RMMSG\r\n";
+static const char command_rmadmin[9] = "RMADMIN\r\n";
+#endif
+static const char command_upload[8] = "UPLOAD\r\n";
+
 static const char guest_choise_msg[] = "> Welcome, guest. You have next command: LIST, EXIT, DOWNLOAD\n";
 static const char reg_choise_msg[] = "> Please enter the login you wish. Beware, case sensetive!\n";
 static const char reg_choise_p_msg[] = "> Enter the password you wish\n";
@@ -33,6 +45,14 @@ static const char online_super_msg[] = "> You have next commands:\n> LIST, EXIT,
 > CHNGFILECONFUSR, RMFILEUSR\n> ADDUSR, RMUSR\n\
 > CHECKMSG, RMMSG\n\
 > RMADMIN\n";
+static const char upload_config_msg[] = "> Enter the file name and access for users separated by commas\n\
+> just file name and * if for all\n\
+> just file name if only for you, examples:\n\
+> \"File user1,user2,...\"\n\
+> \"File *\"\n\
+> \"File\"\n";
+static const char upload_config_error_msg[] = "> Error with file name length (4 symbols min, 25 symbols max) or this file exists, try again\n";
+static const char upload_choose_your_file_msg[] = "> Enter the file name you want to download :)\n";
 static const char unknown_command_msg[] = "> Unknown command, repeat please :)\n";
 static const char good_bye_msg[] = "> Good bye :)\n";
 
@@ -196,14 +216,35 @@ void send_to_tmp_and_change_state(_connect *c)
 		case online_admin:
 			c->st = online_admin_w;
 			if (send(c->fd, online_admin_msg, sizeof(online_admin_msg) - 1, 0) < 0) {
-				syslog(LOG_CRIT, "Unable to send online login rights message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				syslog(LOG_CRIT, "Unable to send online login admin message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
 				c->st = off;
 			}
 			break;
 		case online_super:
 			c->st = online_super_w;
 			if (send(c->fd, online_super_msg, sizeof(online_super_msg) - 1, 0) < 0) {
-				syslog(LOG_CRIT, "Unable to send online login rights message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				syslog(LOG_CRIT, "Unable to send online login super message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case upload_config:
+			c->st = upload_config_w;
+			if (send(c->fd, upload_config_msg, sizeof(upload_config_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send upload config message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case upload_config_error:
+			c->st = upload_config_w;
+			if (send(c->fd, upload_config_error_msg, sizeof(upload_config_error_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send upload config error message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case upload_choose_your_file:
+			c->st = upload_cyf_w;
+			if (send(c->fd, upload_choose_your_file_msg, sizeof(upload_choose_your_file_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send upload choose your file message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
 				c->st = off;
 			}
 			break;
@@ -214,7 +255,24 @@ void send_to_tmp_and_change_state(_connect *c)
 			} else if (c->login == login_guest) {
 				c->st = online_guest_w;
 			} else {
-				c->st = online_login;
+				switch (c->rights) {
+					case 0:
+						c->st = online_super;
+						break;
+					case 1:
+						c->st = online_admin;
+						break;
+					case 2:
+						c->st = online_login_r;
+						break;
+					case 3:
+						c->st = online_login;
+						break;
+					case 4:
+						c->st = guest_choise;
+						break;
+					default: break;
+				}
 			}
 			if (send(c->fd, unknown_command_msg, sizeof(unknown_command_msg) - 1, 0) < 0) {
 				syslog(LOG_CRIT, "Unable to send unknown command message for user to %d socket: %s", c->fd, strerror(errno));
@@ -244,6 +302,14 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 	size_t login_pass_length;
 	size_t acc_login_length;
 	char rs[3];
+	size_t nfssp; /* new file separator space (' ') position */
+	char *new_file_config;
+	char *new_file;
+#if 0
+	FILE *nf, *nfc;
+#endif
+	int32_t nfc_fd, nf_fd;
+	int32_t for_umask = 0177;
 	switch (c->st) {
 		case rgl_choise:
 			if (!strncmp(buf, (const char*)command_guest, 7) && !buf[7]) {
@@ -384,13 +450,65 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 			c->st = online_login;
 			break;
 		case online_login_r_w:
-			c->st = online_login_r;
+			if (!strncmp(buf, command_upload, 8) && !buf[8]) {
+				c->st = upload_config;
+			} else {
+				c->st = unknown_command;
+			}
 			break;
 		case online_admin_w:
 			c->st = online_admin;
 			break;
 		case online_super_w:
 			c->st = online_super;
+			break;
+		case upload_config_w:
+			if (!buf[6]) {
+				c->st = upload_config_error;
+			} else {
+				umask(for_umask);
+				if (strchr((const char*)buf, ' ')) {
+					nfssp = 4;
+					while(buf[nfssp] != ' ') {
+						++nfssp;
+					}
+					if (nfssp > 25) {
+						c->st = upload_config_error;
+					}
+					buf[nfssp] = 0;
+					new_file_config = (char*)calloc(sizeof(char) * (nfssp + 7), sizeof(char)); /* sizeof(".fconf") = 6 + 1 for the \0 symbol */
+					new_file = (char*)calloc(sizeof(char*) * (nfssp + 1), sizeof(char));
+					sprintf(new_file_config, "%s.fconf", buf);
+					strncpy(new_file, (const char*)buf, nfssp);
+					if ((nfc_fd = open((const char*)new_file_config, O_WRONLY | O_CREAT | O_EXCL, 0777)) < 0) {
+						if (errno == EEXIST) {
+							c->st = upload_config_error;
+						} else {
+							c->st = off;
+							syslog(LOG_CRIT, "Unable to create config file for user %s socket %d: %s", c->login, c->fd, strerror(errno));
+						}
+						break;
+					} else {	
+						if (write(nfc_fd, (const char*)(buf + nfssp + 1), strlen(buf + nfssp + 1)) < 0) {
+							c->st = off;
+							syslog(LOG_CRIT, "Unable to write to the config file for user %s socket %d: %s", c->login, c->fd, strerror(errno));
+						}
+						close(nfc_fd);
+					}
+					c->upload_file_name = (char*)calloc(sizeof(char) * (strlen((const char*)new_file) + 1), sizeof(char));
+					strcpy(c->upload_file_name, new_file);
+					c->st = upload_choose_your_file;
+					if ((nf_fd = open((const char*)new_file, O_WRONLY | O_CREAT | O_TRUNC, 0777)) < 0) {
+						c->st = off;
+						syslog(LOG_CRIT, "Unable to create file for user %s socket %d: %s", c->login, c->fd, strerror(errno));
+					}
+					close(nf_fd);
+				} else {
+					;
+				}
+			}
+			break;
+		case upload_cyf_w:
 			break;
 		default:
 			break;

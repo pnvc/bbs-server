@@ -37,6 +37,11 @@ typedef enum state {
 	online_admin_w,
 	online_super,
 	online_super_w,
+	upload_config,
+	upload_config_w,
+	upload_config_error,
+	upload_choose_your_file,
+	upload_cyf_w,
 	unknown_command,
 	good_bye
 } _state;
@@ -48,6 +53,7 @@ typedef struct connect {
 	char *login;
 	char buf[1450];
 	char file_position;
+	char *upload_file_name;
 	char rights; /*0,1,2,3,4 (0 = su, 1 = a, 2 = u*, 3 = u, 4 = g)*/
 } _connect;
 

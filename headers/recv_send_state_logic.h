@@ -2,7 +2,6 @@
 #define RECV_SEND_STATE_LOGIC_H_SENTRY
 
 #include "typedefs.h"
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
@@ -10,7 +9,12 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/syslog.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #ifndef NULL
 #define NULL (void*)0

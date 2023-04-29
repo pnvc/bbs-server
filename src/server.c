@@ -1,5 +1,5 @@
 #define _GNU_SOURCE
-#include "headers/server.h"
+#include "../headers/server.h"
 
 #define POLLFD_ARR_LENGTH 1000
 
@@ -175,7 +175,7 @@ start:
 							tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
 							if (!recv_return) {
 								tmp->st = off;
-							} else if (buf[1449]) {
+							} else if (tmp->st != upload_cyf_w && buf[1449]) {
 								tmp->st = off;
 								memset(buf, 0, 1450);
 							} else if (!strncmp((const char*)buf, "EXIT", 4) && !buf[6]) {

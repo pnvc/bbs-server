@@ -82,6 +82,9 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case online_login_r:
 			case online_admin:
 			case online_super:
+			case upload_config:
+			case upload_config_error:
+			case upload_choose_your_file:
 				pfds[pfi].fd = f->fd;
 				pfds[pfi].events = POLLOUT;
 				++pfi;
@@ -96,6 +99,8 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case online_login_r_w:
 			case online_admin_w:
 			case online_super_w:
+			case upload_config_w:
+			case upload_cyf_w:
 				pfds[pfi].fd = f->fd;
 				pfds[pfi].events = POLLIN;
 				++pfi;
