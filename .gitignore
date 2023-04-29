@@ -1,5 +1,6 @@
 exe
-client/
+client/exe
+client/obj/
 base/
 obj/
 p
