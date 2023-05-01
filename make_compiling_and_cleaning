@@ -1,0 +1,2 @@
+#!/bin/bash
+make compilation && make clean && mkdir -p ./bin_server/ && mv exe ./bin_server/exe && cp -r ./config/ ./bin_server/ && cp -r ./base/ ./bin_server/ && echo "Server is compiled and is lying within the bin_server direcrtory with the default config and work(base) directories."

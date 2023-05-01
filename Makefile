@@ -27,4 +27,3 @@ $(OBJECTS_DIR) :
 
 clean :
 	@rm -R $(OBJECTS_DIR)
-	@rm exe

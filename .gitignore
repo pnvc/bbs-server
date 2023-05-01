@@ -1,9 +1,9 @@
 whattodo
-exe
 client/exe
 client/obj/
-base/
 obj/
+build/
+bin_server/
 p
 k
 l
