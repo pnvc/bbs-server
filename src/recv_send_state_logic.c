@@ -40,9 +40,12 @@ static const char login_short_or_long_p_msg[] = "> You need more than 4 symbols 
 static const char login_choise_p_msg[] = "> Enter password\n";
 static const char login_bad_msg[] = "> This user doesn't exists\n";
 static const char online_login_r_msg[] = "> You have next commands: LIST, EXIT, DOWNLOAD, UPLOAD, CHNGFILECONF, RMFILE\n";
-static const char online_admin_msg[] = "> You have next commands:\n> LIST, EXIT, DOWNLOAD, UPLOAD\n> CHNGFILECONF, RMFILE\n\
+static const char online_admin_msg[] = "> You have next commands:\n\
+> LIST, EXIT, DOWNLOAD, UPLOAD\n\
+> CHNGFILECONF, RMFILE\n\
 > CHNGFILECONFUSR, RMFILEUSR\n> ADDUSR, RMUSR\n";
-static const char online_super_msg[] = "> You have next commands:\n> LIST, EXIT, DOWNLOAD, UPLOAD\n> CHNGFILECONF, RMFILE\n\
+static const char online_super_msg[] = "> You have next commands:\n\
+> LIST, EXIT, DOWNLOAD, UPLOAD\n> CHNGFILECONF, RMFILE\n\
 > CHNGFILECONFUSR, RMFILEUSR\n> ADDUSR, RMUSR\n\
 > CHECKMSG, RMMSG\n\
 > RMADMIN\n";
@@ -53,11 +56,10 @@ static const char upload_config_msg[] = "> Enter the file name and access for us
 > \"File *\"\n\
 > \"File\"\n";
 static const char upload_config_error_msg[] = "> Error with file name length (4 symbols min, 25 symbols max) or this file exists, try again\n";
-static const char upload_choose_your_file_msg[] = "> Enter the file name you want to download :)\n";
-static const char upload_succes_msg[] = "> Upload success!";
+static const char upload_choose_your_file_msg[] = "> Upload: choose the file you want to upload :)\n";
+static const char upload_succes_msg[] = "> Upload success!\n";
 static const char unknown_command_msg[] = "> Unknown command, repeat please :)\n";
 static const char good_bye_msg[] = "> Good bye :)\n";
-
 
 char login_guest[] = "Guest";
 
@@ -326,7 +328,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 	char *new_file;
 	FILE *nf, *nfc;
 	int32_t nfc_fd, nf_fd;
-	int32_t for_umask = 0177;
+	int32_t for_umask = 0117;
 	switch (c->st) {
 		case rgl_choise:
 			if (!strncmp(buf, (const char*)command_guest, 6) && !buf[6]) {
@@ -480,7 +482,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 			c->st = online_super;
 			break;
 		case upload_config_w:
-			if (!buf[5]) {
+			if (!buf[4]) {
 				c->st = upload_config_error;
 			} else {
 				umask(for_umask);
@@ -503,7 +505,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 						}
 						break;
 					} else {	
-						if (write(nfc_fd, (const char*)(buf + nfssp + 1), strlen(buf + nfssp + 1)) < 0) {
+						if (write(nfc_fd, (const char*)buf, strlen(buf)) < 0) {
 							c->st = off;
 							syslog(LOG_CRIT, "Unable to write to the config file for user %s socket %d: %s", c->login, c->fd, strerror(errno));
 						}
@@ -527,14 +529,14 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 				syslog(LOG_CRIT, "Unable to open file for uploading user %s socket %d: %s", c->login, c->fd, strerror(errno));
 				c->st = off;
 				break;
-			} else if (!buf[1450]) {
+			}
+			if (!buf[1449]) {
 				fwrite((const char*)buf, sizeof(char), strlen((const char*)buf), nf);
 				free(c->upload_file_name);
 				c->upload_file_name = NULL;
 				c->st = upload_success;
 			} else {
 				fwrite((const char*)buf, sizeof(char), 1450, nf);
-				c->st = upload_cyf_w;
 			}
 			fclose(nf);
 			break;

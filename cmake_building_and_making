@@ -1,4 +1,2 @@
 #!/bin/bash
 cmake -B ./build/ -S . && cmake --build ./build/ && mkdir -p ./bin_server/ && cp -r ./base/ ./bin_server/ && cp -r ./config/ ./bin_server/ && mv ./build/exe ./bin_server/exe && echo "Server is compiled and is lying within the bin_server direcrtory with the default config and work(base) directories."
-
-git commit -m "Added simple cmake file CMakeLists.txt for the server sources. Added simple script cmake_building_making for the bash to init cmake building and making into the bin_server directory with the config and with the working directory of the server. Gitignore updated. The makefile script make_compile_and_clean is updated and renamed as make_compiling_and_cleaning, now this script also is moving executable file, config and working directories to the bin_server directory."

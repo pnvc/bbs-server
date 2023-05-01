@@ -27,4 +27,4 @@ set(HEADERS
 
 add_executable (exe ${SRC} ${HEADERS})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -ansi -pedantic")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -g -ansi -pedantic")

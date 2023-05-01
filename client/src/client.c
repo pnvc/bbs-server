@@ -5,9 +5,16 @@ char buf[1450];
 
 int32_t main(int32_t argc, const char **argv)
 {
-	int32_t ms, ipr, recv_ret, ms_flags, poll_return, loop_is_possible = 1;
+	int32_t ms, ipr, recv_return, ms_flags, poll_return, loop_is_possible;
+	uint64_t totaly_uploaded = 0;
+	char uploading, downloading, updo_f_is_opened;
 	sa_in cs_addr;
 	struct pollfd pptr;
+	FILE *upload_f, *download_f;
+	size_t fread_return;
+	uploading = downloading = 1;
+	updo_f_is_opened = 0;
+	loop_is_possible = 1;
 	if (argc < 3) {
 		printf("You need args: IP PORT\n");
 		return 1;
@@ -42,7 +49,9 @@ int32_t main(int32_t argc, const char **argv)
 		exit(EXIT_FAILURE);
 	}
 	pptr.fd = ms;
-	pptr.events = POLLIN | POLLOUT;
+	pptr.events = 0;
+	pptr.events = POLLIN;
+	sleep(1);
 	while (loop_is_possible) {
 		usleep(10000);
 		poll_return = poll(&pptr, 1, 0);
@@ -51,11 +60,55 @@ int32_t main(int32_t argc, const char **argv)
 			exit(EXIT_FAILURE);
 		} else {
 			if (pptr.revents & POLLIN) {
-				recv_ret = recv(ms, buf, sizeof(buf), 0);
-				write(1, (const char*)buf, recv_ret);
+				recv_return = recv(ms, buf, sizeof(buf), 0);
+				if (!(pptr.events & POLLOUT)) {
+					if (!strncmp((const char*)buf, "#", 1)) {
+						pptr.events |= POLLOUT;
+					}
+				}
+				write(1, (const char*)buf, recv_return);
+				if (downloading) {
+					uploading = strncmp((const char*)buf, "> Upload:", 9);
+				}
+				if (uploading) {
+					;
+				}
 			} else if (pptr.revents & POLLOUT) {
-				read(0, buf, sizeof(buf));
-				send(ms, (const char*)buf, strlen(buf), 0);
+				if (!uploading) {
+					if (!updo_f_is_opened) {
+						read(0, buf, sizeof(buf));
+						updo_f_is_opened = 1;
+						*(strchr((const char*)buf, '\n')) = 0;
+						upload_f = fopen((const char*)buf, "r");
+						if (!upload_f) {
+							perror("Upload file opening");
+							exit(EXIT_FAILURE);
+						}
+						updo_f_is_opened = 1;
+						memset(buf, 0, strlen((const char*)buf));
+					}
+					fread_return = fread(buf, sizeof(char), sizeof(buf), upload_f);
+					if (!fread_return) {
+						if (feof(upload_f)) {
+							uploading = 1;
+							fclose(upload_f);
+							pptr.events |= POLLIN;
+							memset(buf, 0, 1450);
+							printf("Totaly uploaded %lu bytes\n", totaly_uploaded);
+							totaly_uploaded = 0;
+							sleep(1);
+						} else {
+							perror("Read from upload file");
+							exit(EXIT_FAILURE);
+						}
+					} else {
+						send(ms, (const char*)buf, fread_return, 0);
+						totaly_uploaded += fread_return;
+					}
+				} else {
+					read(0, buf, sizeof(buf));
+					send(ms, (const char*)buf, strlen(buf), 0);
+				}
 			}
 			pptr.revents = 0;
 		}
