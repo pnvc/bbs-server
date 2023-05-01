@@ -1,0 +1,2 @@
+#!/bin/bash
+cmake -B ./build/ -S . && cmake --build ./build/ && mkdir -p ./bin_client/ && mv ./build/exe ./bin_client/exe && echo "Server exe is compiled and is lying within the bin_client direcrtory"

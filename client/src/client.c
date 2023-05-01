@@ -61,6 +61,9 @@ int32_t main(int32_t argc, const char **argv)
 		} else {
 			if (pptr.revents & POLLIN) {
 				recv_return = recv(ms, buf, sizeof(buf), 0);
+				if (!recv_return) {
+					break;
+				}
 				if (!(pptr.events & POLLOUT)) {
 					if (!strncmp((const char*)buf, "#", 1)) {
 						pptr.events |= POLLOUT;
@@ -68,7 +71,9 @@ int32_t main(int32_t argc, const char **argv)
 				}
 				write(1, (const char*)buf, recv_return);
 				if (downloading) {
-					uploading = strncmp((const char*)buf, "> Upload:", 9);
+					if (!(uploading = strncmp((const char*)buf, "> Upload:", 9))) {
+						pptr.events &= ~POLLIN;
+					}
 				}
 				if (uploading) {
 					;
@@ -91,12 +96,13 @@ int32_t main(int32_t argc, const char **argv)
 					if (!fread_return) {
 						if (feof(upload_f)) {
 							uploading = 1;
+							updo_f_is_opened = 0;
 							fclose(upload_f);
 							pptr.events |= POLLIN;
 							memset(buf, 0, 1450);
 							printf("Totaly uploaded %lu bytes\n", totaly_uploaded);
 							totaly_uploaded = 0;
-							sleep(1);
+							usleep(100000);
 						} else {
 							perror("Read from upload file");
 							exit(EXIT_FAILURE);

@@ -77,7 +77,7 @@ void close_and_remove_all_connections(_connect **f, _connect **l)
 	while (tmp) {
 		shutdown(tmp->fd, SHUT_RDWR);
 		close(tmp->fd);
-		if (tmp->login) {
+		if (tmp->login && tmp->login != login_guest) {
 			free(tmp->login);
 		}
 		tmp_free = tmp;

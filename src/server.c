@@ -133,9 +133,8 @@ start:
 			}
 		}
 		close_and_remove_off_connections(&first_connect, &last_connect);
-		narrow_pollfd_array(pollfd_ptr, &pfdli);
-		set_pollfd_by_connections(pollfd_ptr, &pfdli, (const size_t)pollfd_count,first_connect);
-		ppoll_return = ppoll(pollfd_ptr, pollfd_count, NULL,  &old_mask); /* wtf? */
+		set_pollfd_by_connections(pollfd_ptr, &pfdli, (const size_t)pollfd_count, first_connect);
+		ppoll_return = ppoll(pollfd_ptr, pollfd_count, NULL, &old_mask);
 		if (ppoll_return < 0) {
 			if (errno == EINTR) {
 				if (config_update) {
@@ -146,8 +145,10 @@ start:
 					free(IP);
 					free(PORT);
 					free(DIRECTORY);
-					free(SCREEN_FILE);
 					free(ACCOUNTS_FILE);
+					if (SCREEN_FILE) {
+						free(SCREEN_FILE);
+					}
 					if (SCREEN_FILE_BUF) {
 						free(SCREEN_FILE_BUF);
 					}
@@ -158,7 +159,7 @@ start:
 				}
 			}
 		} else {
-			for (pfdi = 0; pfdi < pfdli && ppoll_return; pfdi++) {
+			for (pfdi = 0; pfdi < pfdli; pfdi++) {
 				if (pollfd_ptr[pfdi].fd != -1) {
 					if (pollfd_ptr[pfdi].revents & POLLIN) {
 						if (!pfdi){
@@ -170,6 +171,7 @@ start:
 									syslog(LOG_INFO, "Unable to create struct connect");
 								}
 							}
+							pollfd_ptr[0].revents = 0;
 						} else {
 							recv_return = recv(pollfd_ptr[pfdi].fd, buf, sizeof(buf), 0);
 							tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
@@ -185,19 +187,18 @@ start:
 								check_recv_from_tmp_and_change_state(tmp, buf);
 								memset(buf, 0, strlen((const char*)buf));
 							}
-							pollfd_ptr[pfdi].fd = -1;
-							pollfd_ptr[pfdi].revents = 0;
 						}
-						--ppoll_return;
 					} else if (pollfd_ptr[pfdi].revents & POLLOUT) {
 						tmp = comparison_pollfd_with_connect(first_connect, (const int32_t)pollfd_ptr[pfdi].fd);
 						send_to_tmp_and_change_state(tmp);
+					}
+					if (pfdi > 0) {
 						pollfd_ptr[pfdi].fd = -1;
 						pollfd_ptr[pfdi].revents = 0;
-						--ppoll_return;
 					}
 				}
 			}
+			pfdli = 1;
 		}
 	}
 end:

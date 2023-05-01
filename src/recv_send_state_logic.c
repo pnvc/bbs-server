@@ -325,6 +325,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 	char rs[3];
 	size_t nfssp; /* new file separator space (' ') position */
 	char *new_file_config;
+	char *new_file_config_owner_rights;
 	char *new_file;
 	FILE *nf, *nfc;
 	int32_t nfc_fd, nf_fd;
@@ -504,8 +505,10 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 							syslog(LOG_CRIT, "Unable to create config file for user %s socket %d: %s", c->login, c->fd, strerror(errno));
 						}
 						break;
-					} else {	
-						if (write(nfc_fd, (const char*)buf, strlen(buf)) < 0) {
+					} else {
+						new_file_config_owner_rights = (char*)calloc(sizeof(char) * (strlen((const char*)buf) + strlen((const char*)buf + nfssp + 1)) + 2, sizeof(char));
+						sprintf(new_file_config_owner_rights, "%s %s", c->login, buf + nfssp + 1);
+						if (write(nfc_fd, (const char*)new_file_config_owner_rights, strlen((const char*)new_file_config_owner_rights)) < 0) {
 							c->st = off;
 							syslog(LOG_CRIT, "Unable to write to the config file for user %s socket %d: %s", c->login, c->fd, strerror(errno));
 						}
@@ -539,6 +542,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 				fwrite((const char*)buf, sizeof(char), 1450, nf);
 			}
 			fclose(nf);
+			nf = NULL;
 			break;
 		default:
 			break;

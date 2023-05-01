@@ -1,10 +1,9 @@
 whattodo
-client/exe
+client/bin_client/
+client/build/
+client/rmbinbuild
 client/obj/
 obj/
 build/
 bin_server/
-p
-k
-l
-t
+rmbinbuild

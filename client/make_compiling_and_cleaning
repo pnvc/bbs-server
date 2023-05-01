@@ -1,0 +1,2 @@
+#!/bin/bash
+make compilation && mkdir -p ./bin_client/ && mv exe ./bin_client/exe && echo "Server is compiled and is lying within the bin_client direcrtory."
