@@ -1,4 +1,3 @@
-#include <stdio.h>
 #define _XOPEN_SOURCE 500 /* for the snprintf */
 #include "../headers/recv_send_state_logic.h"
 
@@ -9,11 +8,11 @@ extern char *ACCOUNTS_FILE;
 
 static const char noscreen_msg[] = "> No screen file :(\n";
 static const char after_screen_msg[] = "> Send one of commands to access: GUEST, LOGIN, REG\n";
-static const char command_guest[7] = "GUEST\n";
-static const char command_login[7] = "LOGIN\n";
-static const char command_reg[5] = "REG\n";
+static const char command_guest[6] = "GUEST\n";
+static const char command_login[6] = "LOGIN\n";
+static const char command_reg[4] = "REG\n";
+static const char command_list[5] = "LIST\n";
 #if 0
-static const char command_list[6] = "LIST\n";
 static const char command_download[10] = "DOWNLOAD\n";
 static const char command_chngfileconf[14] = "CHNGFILECONF\n";
 static const char command_rmfile[8] = "RMFILE\n";
@@ -25,7 +24,7 @@ static const char command_checkmsg[10] = "CHECKMSG\n";
 static const char command_rmmsg[7] = "RMMSG\n";
 static const char command_rmadmin[9] = "RMADMIN\n";
 #endif
-static const char command_upload[8] = "UPLOAD\n";
+static const char command_upload[7] = "UPLOAD\n";
 
 static const char guest_choise_msg[] = "> Welcome, guest. You have next command: LIST, EXIT, DOWNLOAD\n";
 static const char reg_choise_msg[] = "> Please enter the login you wish. Beware, case sensetive!\n";
@@ -330,6 +329,10 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 	FILE *nf, *nfc;
 	int32_t nfc_fd, nf_fd;
 	int32_t for_umask = 0117;
+	DIR *list_dir;
+	struct dirent *readdir_file;
+	FILE *readdir_file_open;
+	char *readdir_file_plus_newline;
 	switch (c->st) {
 		case rgl_choise:
 			if (!strncmp(buf, (const char*)command_guest, 6) && !buf[6]) {
@@ -470,8 +473,46 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 			c->st = online_login;
 			break;
 		case online_login_r_w:
-			if (!strncmp(buf, command_upload, 7) && !buf[7]) {
+			if (!strncmp((const char*)buf, (const char*)command_upload, 7) && !buf[7]) {
 				c->st = upload_config;
+			} else if (!strncmp((const char*)buf, (const char*)command_list, 5) && !buf[5]) {
+				memset(buf, 0, 5); /* using buf for the reading .fconf file for the checking accesses */
+				c->st = online_login_r;
+				if (!(list_dir = opendir("."))) {
+					syslog(LOG_CRIT, "Unable to open working directory for the list command for user %s socket %d: %s", c->login, c->fd, strerror(errno));
+					c->st = off;
+				} else {
+					while ((readdir_file = readdir(list_dir))) {
+						if (strstr((const char*)(readdir_file->d_name), ".fconf")) {
+							if (!(readdir_file_open = fopen(readdir_file->d_name, "r"))) {
+								syslog(LOG_CRIT, "Unable to open .fconf file for the checking accesses for the command LIST for use %s socket %d: %s", c->login, c->fd, strerror(errno));
+								c->st = off;
+								break;
+							} else {
+								if (!fread(buf, sizeof(char), 1450, readdir_file_open)) {
+									syslog(LOG_CRIT, "Unable to read from .fconf file for the command LIST for user %s socket %d: %s", c->login, c->fd, strerror(errno));
+									c->st = off;
+									break;
+								} else {
+									/* Here will be send immediatly without POLLOUT awaiting for the c->fd */
+									if (strchr((const char*)buf, '*') || (strstr((const char*)buf, (const char*)(c->login)) &&\
+												(*(strstr((const char*)buf, (const char*)(c->login)) + strlen(c->login)) == ' ' || *(strstr((const char*)buf, (const char*)(c->login)) + strlen(c->login)) == ',' || *(strstr((const char*)buf, (const char*)(c->login)) + strlen(c->login)) == '\n'))) { /* Its just a joke */
+										*strstr((const char*)(readdir_file->d_name), ".fconf") = 0;
+										readdir_file_plus_newline = (char*)calloc(sizeof(char) * strlen((const char*)(readdir_file->d_name)) + 1, sizeof(char));
+										strncpy(readdir_file_plus_newline, (const char*)(readdir_file->d_name), strlen((const char*)(readdir_file->d_name)));
+										*strchr((const char*)readdir_file_plus_newline, 0) = '\n';
+										if (!send(c->fd, (const char*)readdir_file_plus_newline, strlen((const char*)readdir_file_plus_newline), 0)) {
+											syslog(LOG_CRIT, "Unable to send file name for the command LIST for user %s socket %d: %s", c->login, c->fd, strerror(errno));
+											c->st = off;
+											break;
+										}
+									}
+									memset(buf, 0, strlen(buf));
+								}
+							}
+						}
+					}
+				}
 			} else {
 				c->st = unknown_command;
 			}

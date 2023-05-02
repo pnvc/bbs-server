@@ -7,7 +7,7 @@ int32_t main(int32_t argc, const char **argv)
 {
 	int32_t ms, ipr, recv_return, ms_flags, poll_return, loop_is_possible;
 	uint64_t totaly_uploaded = 0;
-	char uploading, downloading, updo_f_is_opened;
+	char uploading, downloading, updo_f_is_opened, list_command;
 	sa_in cs_addr;
 	struct pollfd pptr;
 	FILE *upload_f, *download_f;
@@ -15,6 +15,7 @@ int32_t main(int32_t argc, const char **argv)
 	uploading = downloading = 1;
 	updo_f_is_opened = 0;
 	loop_is_possible = 1;
+	list_command = 0;
 	if (argc < 3) {
 		printf("You need args: IP PORT\n");
 		return 1;
@@ -70,6 +71,10 @@ int32_t main(int32_t argc, const char **argv)
 					}
 				}
 				write(1, (const char*)buf, recv_return);
+				if (list_command && strstr((const char*)buf, "> You have")) {
+					pptr.events |= POLLOUT;
+					list_command = 0;
+				}
 				if (downloading) {
 					if (!(uploading = strncmp((const char*)buf, "> Upload:", 9))) {
 						pptr.events &= ~POLLIN;
@@ -112,8 +117,15 @@ int32_t main(int32_t argc, const char **argv)
 						totaly_uploaded += fread_return;
 					}
 				} else {
-					read(0, buf, sizeof(buf));
-					send(ms, (const char*)buf, strlen(buf), 0);
+					if (list_command) {
+						pptr.events &= ~POLLOUT;
+					} else {
+						read(0, buf, sizeof(buf));
+						if (!strncmp((const char*)buf, "LIST\n", 5) && !buf[5]) {
+							list_command = 1;
+						}
+						send(ms, (const char*)buf, strlen(buf), 0);
+					}
 				}
 			}
 			pptr.revents = 0;
