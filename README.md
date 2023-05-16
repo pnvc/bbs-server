@@ -1,4 +1,4 @@
-<h1>It's not a full program, just a part<h1>
+<h1>It's not a full program, just a part</h1>
 I just tried to understand some things about socket, actually upload/download mechanism
 <br/>
 May be later I shall finaly these programs (client and server parts)
