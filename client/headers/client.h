@@ -13,6 +13,7 @@
 #include <string.h>
 #include <signal.h>
 #include <poll.h>
+#include <fcntl.h>
 #include "typedefs.h"
 
 #endif

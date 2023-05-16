@@ -2,6 +2,7 @@
 #define TYPEDEFS_H_SENTRY
 
 #include <inttypes.h>
+#include <stdio.h>
 
 typedef struct sockaddr sa;
 typedef struct sockaddr_in sa_in;
@@ -42,7 +43,10 @@ typedef enum state {
 	upload_config_error,
 	upload_choose_your_file,
 	upload_cyf_w,
-	upload_success,
+	download_choose_file,
+	download_cyf_w,
+	download_cyf_send,
+	error_download,
 	unknown_command,
 	good_bye
 } _state;
@@ -54,6 +58,7 @@ typedef struct connect {
 	char *login;
 	char buf[1450];
 	char file_position;
+	FILE *df;
 	char *upload_file_name;
 	char rights; /*0,1,2,3,4 (0 = su, 1 = a, 2 = u*, 3 = u, 4 = g)*/
 } _connect;

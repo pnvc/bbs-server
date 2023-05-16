@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.0)
 
-project(Server)
+project(Client)
 
 set(SRC
 	src/client.c

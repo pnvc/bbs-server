@@ -64,7 +64,9 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case upload_config:
 			case upload_config_error:
 			case upload_choose_your_file:
-			case upload_success:
+			case download_choose_file:
+			case download_cyf_send:
+			case error_download:
 				pfds[pfi].fd = f->fd;
 				pfds[pfi].events = POLLOUT;
 				++pfi;
@@ -81,6 +83,7 @@ void set_pollfd_by_connections(struct pollfd *pfds, size_t *pfli, const size_t p
 			case online_super_w:
 			case upload_config_w:
 			case upload_cyf_w:
+			case download_cyf_w:
 				pfds[pfi].fd = f->fd;
 				pfds[pfi].events = POLLIN;
 				++pfi;

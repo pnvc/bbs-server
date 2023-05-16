@@ -26,5 +26,6 @@ void send_to_tmp_and_change_state(_connect *c);
 void check_recv_from_tmp_and_change_state(_connect *c, char *buf);
 size_t compare_new_login_with_accounts(const char *new_login, const char *buf_read_account_file);
 int32_t make_connect_login(char **connect_login, const char *temp_buf_login, size_t new_login_length);
+int open_config_file_check_login(const char *buf, const char *login);
 
 #endif

@@ -12,8 +12,8 @@ static const char command_guest[6] = "GUEST\n";
 static const char command_login[6] = "LOGIN\n";
 static const char command_reg[4] = "REG\n";
 static const char command_list[5] = "LIST\n";
+static const char command_download[9] = "DOWNLOAD\n";
 #if 0
-static const char command_download[10] = "DOWNLOAD\n";
 static const char command_chngfileconf[14] = "CHNGFILECONF\n";
 static const char command_rmfile[8] = "RMFILE\n";
 static const char command_chngfileconfusr[17] = "CHNGFILECONFUSR\n";
@@ -56,7 +56,8 @@ static const char upload_config_msg[] = "> Enter the file name and access for us
 > \"File\"\n";
 static const char upload_config_error_msg[] = "> Error with file name length (4 symbols min, 25 symbols max) or this file exists, try again\n";
 static const char upload_choose_your_file_msg[] = "> Upload: choose the file you want to upload :)\n";
-static const char upload_succes_msg[] = "> Upload success!\n";
+static const char download_choose_file_msg[] = "> Download: choose the file you want to download :)\n";
+static const char error_download_msg[] = "> Unable download\n";
 static const char unknown_command_msg[] = "> Unknown command, repeat please :)\n";
 static const char good_bye_msg[] = "> Good bye :)\n";
 
@@ -76,6 +77,8 @@ _connect *comparison_pollfd_with_connect(_connect *f, const int32_t pollfd_fd)
 void send_to_tmp_and_change_state(_connect *c)
 {
 	char success_msg[37];
+	char buf[1450] = {0};
+	size_t fread_r;
 	switch (c->st) {
 		case screen:
 			c->st = after_screen;
@@ -134,7 +137,7 @@ void send_to_tmp_and_change_state(_connect *c)
 		case reg_success:
 			c->rights = 3;
 			c->st = online_login;
-			sprintf(success_msg, "> Welcome, dear %s\n", c->login);
+			sprintf(success_msg, "! Welcome, dear %s\n", c->login);
 			if (send(c->fd, (const char*)success_msg, strlen(success_msg), 0) < 0) {
 				syslog(LOG_CRIT, "Unable to send registration success message for user to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
@@ -196,7 +199,7 @@ void send_to_tmp_and_change_state(_connect *c)
 			} else if (c->rights == 0) {
 				c->st = online_super;
 			}
-			sprintf(success_msg, "> Hello, %s\n", c->login);
+			sprintf(success_msg, "! Hello, %s\n", c->login);
 			if (send(c->fd, (const char*)success_msg, strlen(success_msg), 0) < 0) {
 				syslog(LOG_CRIT, "Unable to send login success message for user to %d socket: %s", c->fd, strerror(errno));
 				c->st = off;
@@ -251,21 +254,68 @@ void send_to_tmp_and_change_state(_connect *c)
 				c->st = off;
 			}
 			break;
-		case upload_success:
-			switch (c->rights) {
-				case 0:
-					c->st = online_super;
-					break;
-				case 1:
-					c->st = online_admin;
-					break;
-				case 2:
-					c->st = online_login_r;
-					break;
-			}
-			if (send(c->fd, upload_succes_msg, sizeof(upload_succes_msg) - 1, 0) < 0) {
-				syslog(LOG_CRIT, "Unable to send upload success message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+		case download_choose_file:
+			c->st = download_cyf_w;
+			if (send(c->fd, download_choose_file_msg, sizeof(download_choose_file_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send download choose file message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
 				c->st = off;
+			}
+			break;
+		case error_download:
+			c->st = online_login_r;
+			if (send(c->fd, error_download_msg, sizeof(error_download_msg) - 1, 0) < 0) {
+				syslog(LOG_CRIT, "Unable to send error download message for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+				c->st = off;
+			}
+			break;
+		case download_cyf_send:
+			if (!c->df) {
+				c->st = error_download;
+			} else {
+				fseek(c->df, c->file_position * 1450, SEEK_SET);
+				if (!(fread_r = fread(buf, sizeof(char), 1450, c->df))) {
+					if (feof(c->df)) {
+						switch (c->rights) {
+							case 0:
+								c->st = online_super;
+								break;
+							case 1:
+								c->st = online_admin;
+								break;
+							case 2:
+								c->st = online_login_r;
+								break;
+						}
+					} else {
+						c->st = error_download;
+					}
+				} else if (fread_r == 1450) {
+					c->file_position++;
+					if (send(c->fd, buf, 1450, 0) < 0) {
+						syslog(LOG_CRIT, "Unable to send data from the download file for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+						c->st = error_download;
+					}
+
+				} else if (fread_r < 1450) {
+					switch (c->rights) {
+						case 0:
+							c->st = online_super;
+							break;
+						case 1:
+							c->st = online_admin;
+							break;
+						case 2:
+							c->st = online_login_r;
+							break;
+					}
+					if (send(c->fd, buf, fread_r, 0) < 0) {
+						syslog(LOG_CRIT, "Unable to send data from the download file for user %s to %d socket: %s", c->login, c->fd, strerror(errno));
+						c->st = off;
+					}
+					fclose(c->df);
+					c->df = NULL;
+					sleep(1);
+				}
 			}
 			break;
 /* -------------------------------------------------------------------- */
@@ -317,6 +367,8 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 	size_t buf_read_account_file_length = 76;
 	size_t new_login_length;
 	size_t new_password_length;
+	size_t new_file_name_length;
+	size_t new_file_config_owner_rights_length;
 	char new_login_password[73] = {0};
 	uint64_t login_l_buf_length;
 	size_t login_pass_length;
@@ -326,7 +378,7 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 	char *new_file_config;
 	char *new_file_config_owner_rights;
 	char *new_file;
-	FILE *nf, *nfc;
+	FILE *nf, *df;
 	int32_t nfc_fd, nf_fd;
 	int32_t for_umask = 0117;
 	DIR *list_dir;
@@ -495,8 +547,12 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 									break;
 								} else {
 									/* Here will be send immediatly without POLLOUT awaiting for the c->fd */
-									if (strchr((const char*)buf, '*') || (strstr((const char*)buf, (const char*)(c->login)) &&\
-												(*(strstr((const char*)buf, (const char*)(c->login)) + strlen(c->login)) == ' ' || *(strstr((const char*)buf, (const char*)(c->login)) + strlen(c->login)) == ',' || *(strstr((const char*)buf, (const char*)(c->login)) + strlen(c->login)) == '\n'))) { /* Its just a joke */
+									if (strchr((const char*)buf, '*') ||
+											(strstr((const char*)buf, (const char*)(c->login)) &&\
+											(*(strstr((const char*)buf, (const char*)(c->login)) + strlen((const char*)c->login)) == ' ' ||\
+											 *(strstr((const char*)buf, (const char*)(c->login)) + strlen((const char*)c->login)) == ',' ||\
+											 *(strstr((const char*)buf, (const char*)(c->login)) + strlen((const char*)c->login)) == '\n'))) {
+											/* Its just a joke */
 										*strstr((const char*)(readdir_file->d_name), ".fconf") = 0;
 										readdir_file_plus_newline = (char*)calloc(sizeof(char) * strlen((const char*)(readdir_file->d_name)) + 1, sizeof(char));
 										strncpy(readdir_file_plus_newline, (const char*)(readdir_file->d_name), strlen((const char*)(readdir_file->d_name)));
@@ -513,6 +569,8 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 						}
 					}
 				}
+			} else if (!strncmp((const char*)buf, (const char*)command_download, 9) && !buf[9]) {
+				c->st = download_choose_file;
 			} else {
 				c->st = unknown_command;
 			}
@@ -547,16 +605,17 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 						}
 						break;
 					} else {
-						new_file_config_owner_rights = (char*)calloc(sizeof(char) * (strlen((const char*)buf) + strlen((const char*)buf + nfssp + 1)) + 2, sizeof(char));
+						new_file_config_owner_rights = (char*)calloc(sizeof(char) * (strlen((const char*)c->login) + strlen((const char*)buf + nfssp + 1)) + 2, sizeof(char));
 						sprintf(new_file_config_owner_rights, "%s %s", c->login, buf + nfssp + 1);
 						if (write(nfc_fd, (const char*)new_file_config_owner_rights, strlen((const char*)new_file_config_owner_rights)) < 0) {
 							c->st = off;
 							syslog(LOG_CRIT, "Unable to write to the config file for user %s socket %d: %s", c->login, c->fd, strerror(errno));
 						}
 						close(nfc_fd);
+						free(new_file_config_owner_rights);
 					}
-					c->upload_file_name = (char*)calloc(sizeof(char) * (strlen((const char*)new_file) + 1), sizeof(char));
-					strcpy(c->upload_file_name, new_file);
+					c->upload_file_name = new_file;
+					free(new_file_config);
 					c->st = upload_choose_your_file;
 					if ((nf_fd = open((const char*)new_file, O_WRONLY | O_CREAT | O_TRUNC, 0777)) < 0) {
 						c->st = off;
@@ -564,7 +623,41 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 					}
 					close(nf_fd);
 				} else {
-					;
+					*strchr((const char*)buf, '\n') = 0;
+					new_file_name_length = strlen((const char*)buf);
+					if (new_file_name_length > 25) {
+						c->st = upload_config_error;
+					}
+					new_file_config = (char*)calloc(sizeof(char) * (new_file_name_length + 7), sizeof(char)); /* sizeof(".fconf") = 6 + 1 for the \0 symbol */
+					new_file = (char*)calloc(sizeof(char*) * (new_file_name_length + 1), sizeof(char));
+					snprintf(new_file_config, new_file_name_length + 7, "%s.fconf", buf);
+					strncpy(new_file, (const char*)buf, new_file_name_length);
+					if ((nfc_fd = open((const char*)new_file_config, O_WRONLY | O_APPEND | O_CREAT | O_EXCL, 0777)) < 0) {
+						if (errno == EEXIST) {
+							c->st = upload_config_error;
+						} else {
+							c->st = off;
+							syslog(LOG_CRIT, "Unable to create config file for user %s socket %d: %s", c->login, c->fd, strerror(errno));
+						}
+						break;
+					} else {
+						new_file_config_owner_rights_length = strlen((const char*)c->login) + 2;
+						new_file_config_owner_rights = (char*)calloc(sizeof(char) * new_file_config_owner_rights_length, sizeof(char));
+						snprintf(new_file_config_owner_rights, new_file_config_owner_rights_length, "%s,", c->login);
+						if (write(nfc_fd, (const char*)new_file_config_owner_rights, new_file_config_owner_rights_length) < 0) {
+							c->st = off;
+							syslog(LOG_CRIT, "Unable to write to the config file for user %s socket %d: %s", c->login, c->fd, strerror(errno));
+						}
+						close(nfc_fd);
+					}
+					c->upload_file_name = new_file;
+					free(new_file_config);
+					c->st = upload_choose_your_file;
+					if ((nf_fd = open((const char*)new_file, O_WRONLY | O_CREAT | O_TRUNC, 0777)) < 0) {
+						c->st = off;
+						syslog(LOG_CRIT, "Unable to create file for user %s socket %d: %s", c->login, c->fd, strerror(errno));
+					}
+					close(nf_fd);
 				}
 			}
 			break;
@@ -578,12 +671,37 @@ void check_recv_from_tmp_and_change_state(_connect *c, char *buf)
 				fwrite((const char*)buf, sizeof(char), strlen((const char*)buf), nf);
 				free(c->upload_file_name);
 				c->upload_file_name = NULL;
-				c->st = upload_success;
+				switch (c->rights) {
+					case 0:
+						c->st = online_super;
+						break;
+					case 1:
+						c->st = online_admin;
+						break;
+					case 2:
+						c->st = online_login_r;
+						break;
+				}
 			} else {
 				fwrite((const char*)buf, sizeof(char), 1450, nf);
 			}
 			fclose(nf);
 			nf = NULL;
+			break;
+		case download_cyf_w:
+			if (!buf[4]) {
+				c->st = error_download;
+			} else if (open_config_file_check_login((const char*)buf, (const char*)c->login)) {
+				c->st = error_download;
+			} else {
+				buf[strlen((const char*)buf) - 1] = 0;
+				if (!(df = fopen((const char*)buf, "r"))) {
+					c->st = error_download;
+				} else {
+					c->df = df;
+					c->st = download_cyf_send;
+				}
+			}
 			break;
 		default:
 			break;
@@ -611,5 +729,50 @@ int32_t make_connect_login(char **connect_login, const char *temp_buf_login, siz
 	}
 	memcpy(*connect_login, temp_buf_login, new_login_length);
 	(*connect_login)[new_login_length] = 0;
+	return 0;
+}
+
+int open_config_file_check_login(const char *buf, const char *login)
+{
+	char *cf;
+	FILE *cfd;
+	char buf_read_cf[1450];
+	size_t fread_r;
+	char *login_within_cf;
+	cf = (char*)calloc(sizeof(char) * (strlen(buf) + 6), sizeof(char)); /* -1 (\n) and +7 is (.fconf\0) part => +6 */
+	if (!cf) {
+		return 11;
+	}
+	strncpy(cf, buf, strlen(buf) - 1);
+	sprintf(cf + strlen(cf), ".fconf");
+	if (!(cfd = fopen((const char*)cf, "r"))) {
+		return 1;
+	} else {
+		if ((fread_r = fread(buf_read_cf, sizeof(char), sizeof(buf_read_cf), cfd))) {
+			if (strchr((const char*)buf_read_cf, '*')) {
+				free(cf);
+				return 0;
+			} else {
+				if (fread_r == 1450) {
+					free(cf);
+					return 2;
+				} else {
+					if ((login_within_cf = strstr((const char*)buf_read_cf, login))) {
+						if (login_within_cf[strlen(login)] != ' ' && login_within_cf[strlen(login)] != ',' && login_within_cf[strlen(login)] != '\n') {
+							free(cf);
+							return 3;
+						}
+					} else {
+						free(cf);
+						return 4;
+					}
+				}
+			}
+		} else {
+			free(cf);
+			return 5;
+		}
+	}
+	free(cf);
 	return 0;
 }
