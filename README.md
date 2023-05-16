@@ -4,7 +4,7 @@ I just tried to understand some things about socket, actually upload/download me
 May be later I shall finaly these programs (client and server parts)
 <br/>
 Very dirty code, I know it, many parts of the code could be wrapped as separate functions
-Many things have been omitted (some times snprintf, some times sprintf, calloc, malloc and other...)
+Many things have been omitted (some times snprintf, some times sprintf, calloc, malloc and other...) and many repeats of the code. I dont like this too )))
 <br/>
 Here is simple bbs server with client.
 Server starts as deamon process which can be killed by USR1 signal or HUP signal for reconfiguration after change server.fconf file.
